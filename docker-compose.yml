@@ -1,0 +1,126 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: smart
+      POSTGRES_PASSWORD: smart
+      POSTGRES_DB: smarthome
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smart -d smarthome"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,sns
+      DEFAULT_REGION: us-west-2
+      AWS_DEFAULT_REGION: us-west-2
+    volumes:
+      - ./localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+      - localstackdata:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://smart:smart@postgres:5432/smarthome
+      MONGO_URL: mongodb://mongo:27017
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/inference-events
+      SQS_DLQ_URL: http://localstack:4566/000000000000/inference-events-dlq
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  model-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m app.workers.model_worker
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://smart:smart@postgres:5432/smarthome
+      MONGO_URL: mongodb://mongo:27017
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/inference-events
+      SQS_DLQ_URL: http://localstack:4566/000000000000/inference-events-dlq
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+      - localstack
+
+  sweepers:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m app.workers.sweepers
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://smart:smart@postgres:5432/smarthome
+      MONGO_URL: mongodb://mongo:27017
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/inference-events
+      SQS_DLQ_URL: http://localstack:4566/000000000000/inference-events-dlq
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+      - localstack
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    environment:
+      VITE_API_BASE: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  mongodata:
+  localstackdata:
