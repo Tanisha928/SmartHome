@@ -1,0 +1,1 @@
+"""SQS queue publisher."""
