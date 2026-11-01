@@ -32,7 +32,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String(200))
@@ -51,7 +51,7 @@ class User(Base):
 class House(Base):
     __tablename__ = "houses"
 
-    house_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    house_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     address_line: Mapped[Optional[str]] = mapped_column(String(300))
     city: Mapped[Optional[str]] = mapped_column(String(100))
     state: Mapped[Optional[str]] = mapped_column(String(50))
@@ -96,7 +96,7 @@ class UserHouse(Base):
 class Resident(Base):
     __tablename__ = "residents"
 
-    resident_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    resident_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.house_id"), nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String(200))
     birth_year: Mapped[Optional[int]] = mapped_column(Integer)
@@ -106,7 +106,7 @@ class Resident(Base):
 class Room(Base):
     __tablename__ = "rooms"
 
-    room_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    room_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.house_id"), nullable=False)
     room_type: Mapped[str] = mapped_column(String(20), nullable=False)
     label: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -126,7 +126,7 @@ class Room(Base):
 class Device(Base):
     __tablename__ = "devices"
 
-    device_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    device_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     room_id: Mapped[int] = mapped_column(ForeignKey("rooms.room_id"), nullable=False)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.house_id"), nullable=False)
     device_type: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -167,7 +167,7 @@ class Device(Base):
 class DeviceCommand(Base):
     __tablename__ = "device_commands"
 
-    command_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    command_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey("devices.device_id"), nullable=False)
     command: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(
@@ -193,7 +193,7 @@ class DeviceCommand(Base):
 class Event(Base):
     __tablename__ = "events"
 
-    event_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey("devices.device_id"), nullable=False)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.house_id"), nullable=False)
     s3_key: Mapped[Optional[str]] = mapped_column(String(500))
@@ -222,7 +222,7 @@ class Event(Base):
 class Alert(Base):
     __tablename__ = "alerts"
 
-    alert_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    alert_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     event_id: Mapped[int] = mapped_column(ForeignKey("events.event_id"), unique=True, nullable=False)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.house_id"), nullable=False)
     room_id: Mapped[int] = mapped_column(ForeignKey("rooms.room_id"), nullable=False)
@@ -265,7 +265,7 @@ class Alert(Base):
 class AlertStateHistory(Base):
     __tablename__ = "alert_state_history"
 
-    history_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    history_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     alert_id: Mapped[int] = mapped_column(ForeignKey("alerts.alert_id"), nullable=False)
     from_state: Mapped[Optional[str]] = mapped_column(String(20))
     to_state: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -281,7 +281,7 @@ class AlertStateHistory(Base):
 class AlertNotification(Base):
     __tablename__ = "alert_notifications"
 
-    notification_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    notification_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     alert_id: Mapped[int] = mapped_column(ForeignKey("alerts.alert_id"), nullable=False)
     recipient_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.user_id"))
     recipient_label: Mapped[Optional[str]] = mapped_column(String(200))
@@ -303,7 +303,7 @@ class AlertNotification(Base):
 class NotificationPref(Base):
     __tablename__ = "notification_prefs"
 
-    pref_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    pref_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.house_id"), nullable=False)
     alert_category: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -324,7 +324,7 @@ class NotificationPref(Base):
 class AdminReadAudit(Base):
     __tablename__ = "admin_read_audit"
 
-    audit_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    audit_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     actor_user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False)
     house_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     action: Mapped[str] = mapped_column(Text, nullable=False)
@@ -351,7 +351,7 @@ class RetentionPolicy(Base):
 class ThresholdOverride(Base):
     __tablename__ = "threshold_overrides"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     scope: Mapped[str] = mapped_column(String(20), nullable=False)
     scope_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     sound_type: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -368,7 +368,7 @@ class ThresholdOverride(Base):
 class BackupStatus(Base):
     __tablename__ = "backup_status"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     kind: Mapped[str] = mapped_column(String(20), nullable=False)
     taken_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     status: Mapped[Optional[str]] = mapped_column(String(40))
@@ -384,7 +384,7 @@ class SavedView(Base):
 
     __tablename__ = "saved_views"
 
-    view_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    view_id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     filters_json: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'{}'"))

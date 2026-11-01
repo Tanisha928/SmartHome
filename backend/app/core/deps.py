@@ -8,7 +8,6 @@ from typing import Any, Literal
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
 
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.security import decode_token
@@ -90,8 +89,8 @@ def require_role(*roles: str) -> Callable[[Claims], Claims]:
     return _guard
 
 
-def get_db() -> Generator[Session, None, None]:
-    """Yield a SQLAlchemy session. Wired to real session factory once pg/session exists."""
+def get_db() -> Generator[Any, None, None]:
+    """Yield a SQLAlchemy session from persistence (imported lazily to keep core DB-free)."""
     from app.persistence.pg.session import SessionLocal
 
     db = SessionLocal()
