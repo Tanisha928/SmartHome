@@ -12,6 +12,7 @@ from app.persistence.repositories.notification_repo import NotificationRepositor
 from app.persistence.repositories.prefs_repo import PrefsRepository
 from app.persistence.repositories.retention_repo import RetentionRepository
 from app.persistence.repositories.room_repo import RoomRepository
+from app.persistence.repositories.saved_views_repo import SavedViewsRepository
 from app.persistence.repositories.telemetry_repo import TelemetryRepository
 from app.persistence.repositories.user_repo import UserRepository
 
@@ -28,6 +29,7 @@ __all__ = [
     "PrefsRepository",
     "RetentionRepository",
     "RoomRepository",
+    "SavedViewsRepository",
     "TelemetryRepository",
     "UserRepository",
 ]
