@@ -14,6 +14,7 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import CorrelationIdMiddleware
 from app.persistence.api.houses import router as houses_router
+from app.persistence.api.ingest import router as ingest_router
 
 log = get_logger(__name__)
 
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(houses_router)
+    app.include_router(ingest_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
