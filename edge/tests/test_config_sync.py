@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import httpx
+import pytest
+
 from tests.conftest import Rig
 
 
@@ -68,3 +73,38 @@ def test_simulated_offline_skips_network(rig: Rig) -> None:
         rig.sender.send_cycle()
         rig.clock.advance(301)
     assert len(rig.api.stored) == 2
+
+
+def test_simulate_count_stops_after_n_intervals(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`simulate --count N` emits exactly N intervals and exits once the buffer drains."""
+    from typer.testing import CliRunner
+
+    from edge_agent import cli
+    from edge_agent.simulator import write_tone_wav
+    from tests.conftest import FakeApi
+
+    api = FakeApi()
+    real_client = httpx.Client
+
+    def fake_client(*args: object, **kwargs: object) -> httpx.Client:
+        return real_client(transport=httpx.MockTransport(api.handler))
+
+    monkeypatch.setattr("edge_agent.agent.httpx.Client", fake_client)
+    monkeypatch.setattr("edge_agent.agent.threading.Event.wait", lambda self, t=None: False)
+    wav = write_tone_wav(tmp_path / "glass_break.wav", freq_hz=440.0, seconds=0.1)
+    env = {
+        "API_BASE": "http://api.test",
+        "DEVICE_ID": "7",
+        "API_KEY": "dk_good",
+        "HOUSE_ID": "3",
+        "OUTBOX_DB": str(tmp_path / "o.sqlite"),
+        "CLIP_DIR": str(tmp_path / "clips"),
+        "SEND_CYCLE_SEC": "0.001",
+    }
+    result = CliRunner().invoke(
+        cli.app, ["simulate", "--wav", str(wav), "--every", "0", "--count", "3"], env=env
+    )
+    assert result.exit_code == 0, result.output
+    assert len(api.stored) == 3

@@ -74,7 +74,8 @@ def simulate(
 
     def on_tick(a: Agent) -> None:
         now = time.time()
-        if now >= state["next"] and a.state.capture_enabled:
+        more = not count or state["intervals"] < count
+        if more and now >= state["next"] and a.state.capture_enabled:
             sim.emit(burst)
             state["intervals"] += 1
             state["next"] = now + interval
