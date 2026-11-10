@@ -14,6 +14,7 @@ migrate:
 
 test:
 	cd backend && python -m pytest tests/unit -q
+	cd edge && python -m pytest -q
 	@if [ -d frontend/node_modules ]; then cd frontend && npm test -- --run; fi
 
 lint:
