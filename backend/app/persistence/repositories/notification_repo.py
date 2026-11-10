@@ -16,7 +16,9 @@ class NotificationRepository(BaseRepository):
     def __init__(self, db: Session) -> None:
         super().__init__(db)
 
-    def create_pending(self, alert_id: int, recipients: list[dict[str, Any]]) -> list[AlertNotification]:
+    def create_pending(
+        self, alert_id: int, recipients: list[dict[str, Any]]
+    ) -> list[AlertNotification]:
         rows: list[AlertNotification] = []
         for r in recipients:
             row = AlertNotification(

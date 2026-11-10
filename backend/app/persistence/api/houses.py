@@ -17,6 +17,7 @@ from app.core.security import hash_password
 from app.persistence.repositories.house_repo import HouseRepository
 from app.persistence.repositories.user_repo import UserRepository
 
+admin_only = require_role("admin")
 router = APIRouter(tags=["houses"])
 log = get_logger(__name__)
 
@@ -55,7 +56,9 @@ def create_house_sns_topic(house_id: int) -> str | None:
         return None
 
 
-def _serialize_house(house: Any, rooms: list[Any] | None = None, devices: list[Any] | None = None) -> dict[str, Any]:
+def _serialize_house(
+    house: Any, rooms: list[Any] | None = None, devices: list[Any] | None = None
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "house_id": house.house_id,
         "address_line": house.address_line,
@@ -88,7 +91,7 @@ def _serialize_house(house: Any, rooms: list[Any] | None = None, devices: list[A
 @router.post("/api/houses", status_code=201)
 def create_house(
     body: HouseCreate,
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     houses = HouseRepository(db)
@@ -114,7 +117,11 @@ def create_house(
                 temp_password=temp_password,
             )
         houses.link_user(owner.user_id, house.house_id, "owner")
-        owner_info = {"user_id": owner.user_id, "email": owner.email, "must_reset": owner.must_reset}
+        owner_info = {
+            "user_id": owner.user_id,
+            "email": owner.email,
+            "must_reset": owner.must_reset,
+        }
         if temp_password and get_settings().env == "dev":
             owner_info["temp_password"] = temp_password
 

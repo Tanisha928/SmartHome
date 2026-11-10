@@ -153,15 +153,15 @@ class EventRepository(BaseRepository):
         )
 
     def allocate_id(self) -> int:
-        """Pre-allocate an event id via a temporary row pattern using nextval when available."""
-        # Portable approach: insert a placeholder then delete — use sequence on PG
-        try:
-            result = self.db.execute(
+        """Reserve an event id up front (the S3 key needs it before the row is inserted).
+
+        PostgreSQL: take the next value from the column's sequence, so concurrent ingests never
+        collide. SQLite (unit tests only): max + 1.
+        """
+        if self.db.get_bind().dialect.name == "postgresql":
+            next_id = self.db.scalar(
                 select(func.nextval(func.pg_get_serial_sequence("events", "event_id")))
             )
-            # Fallback simpler: use NULL and flush later; ingest prefers pre-known id for S3 key
-        except Exception:
-            pass
-        # Use a lightweight insert of a sentinel then update — instead return max+1 for tests
+            return int(next_id)
         max_id = self.db.scalar(select(func.coalesce(func.max(Event.event_id), 0))) or 0
         return int(max_id) + 1

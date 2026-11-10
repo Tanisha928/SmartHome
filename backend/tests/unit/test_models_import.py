@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from app.persistence.pg import models
 
-
 EXPECTED_TABLES = {
     "users",
     "houses",

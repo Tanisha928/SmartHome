@@ -19,7 +19,9 @@ class RoomRepository(BaseRepository):
 
     def get(self, room_id: int, claims: Claims) -> Room:
         stmt = select(Room).where(Room.room_id == room_id)
-        stmt = self.apply_scope(stmt, claims, Room.house_id, action="get_room", resource=f"room:{room_id}")
+        stmt = self.apply_scope(
+            stmt, claims, Room.house_id, action="get_room", resource=f"room:{room_id}"
+        )
         room = self.db.scalars(stmt).first()
         if room is None:
             if self.db.get(Room, room_id) is None:
@@ -40,7 +42,9 @@ class RoomRepository(BaseRepository):
         ).first()
         if existing:
             raise ConflictError("Duplicate room label", details={"error": "duplicate_label"})
-        room = Room(house_id=fields["house_id"], room_type=fields["room_type"], label=fields["label"])
+        room = Room(
+            house_id=fields["house_id"], room_type=fields["room_type"], label=fields["label"]
+        )
         self.db.add(room)
         self.db.flush()
         return room

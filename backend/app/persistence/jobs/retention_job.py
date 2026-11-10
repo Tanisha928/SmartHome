@@ -25,7 +25,9 @@ class RetentionJob:
 
     def run(self) -> dict[str, Any]:
         policy = self.retention.get()
-        lifecycle_ok = self._apply_s3_lifecycle(policy.clip_expire_days, policy.clip_ia_transition_days)
+        lifecycle_ok = self._apply_s3_lifecycle(
+            policy.clip_expire_days, policy.clip_ia_transition_days
+        )
         try:
             ensure_indexes()
             mongo_ok = True
@@ -94,6 +96,11 @@ class RetentionJob:
             self.db.add(row)
         self.db.flush()
         return [
-            {"kind": r.kind, "status": r.status, "location": r.location, "taken_at": r.taken_at.isoformat() + "Z"}
+            {
+                "kind": r.kind,
+                "status": r.status,
+                "location": r.location,
+                "taken_at": r.taken_at.isoformat() + "Z",
+            }
             for r in rows
         ]

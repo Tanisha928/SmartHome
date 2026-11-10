@@ -59,7 +59,9 @@ class DeviceRepository(BaseRepository):
             stmt = stmt.where(Device.status == filters["status"])
         if filters.get("connectivity") is not None:
             stmt = stmt.where(Device.conn_state == filters["connectivity"])
-        stmt = self.apply_scope(stmt, claims, Device.house_id, action="list_devices", resource="devices")
+        stmt = self.apply_scope(
+            stmt, claims, Device.house_id, action="list_devices", resource="devices"
+        )
         total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         items = list(
             self.db.scalars(

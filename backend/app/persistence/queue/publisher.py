@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import boto3
@@ -31,7 +31,7 @@ def _sqs_client() -> BaseClient:
 def _iso_z(dt: datetime) -> str:
     if dt.tzinfo is None:
         return dt.isoformat() + "Z"
-    return dt.astimezone().isoformat().replace("+00:00", "Z")
+    return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class QueuePublisher:

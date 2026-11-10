@@ -67,7 +67,9 @@ class AlertRepository(BaseRepository):
                 state=next_state,
                 version=Alert.version + 1,
                 updated_at=datetime.now(UTC),
-                resolved_by=actor if next_state in ("resolved", "false_positive") else Alert.resolved_by,
+                resolved_by=actor
+                if next_state in ("resolved", "false_positive")
+                else Alert.resolved_by,
                 resolved_at=datetime.now(UTC)
                 if next_state in ("resolved", "false_positive")
                 else Alert.resolved_at,
@@ -84,7 +86,9 @@ class AlertRepository(BaseRepository):
                 details={
                     "current_state": alert.state,
                     "last_actor": last.actor_user_id if last else None,
-                    "changed_at": (last.changed_at.isoformat() + "Z") if last and last.changed_at else None,
+                    "changed_at": (last.changed_at.isoformat() + "Z")
+                    if last and last.changed_at
+                    else None,
                 },
             )
         self.append_history(alert_id, expected, next_state, actor, note)
@@ -128,11 +132,15 @@ class AlertRepository(BaseRepository):
             stmt = stmt.where(Alert.sound_type == filters["sound_type"])
         if filters.get("updated_since") is not None:
             stmt = stmt.where(Alert.updated_at >= filters["updated_since"])
-        stmt = self.apply_scope(stmt, claims, Alert.house_id, action="list_alerts", resource="alerts")
+        stmt = self.apply_scope(
+            stmt, claims, Alert.house_id, action="list_alerts", resource="alerts"
+        )
         total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         items = list(
             self.db.scalars(
-                stmt.order_by(Alert.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+                stmt.order_by(Alert.created_at.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
             ).all()
         )
         return {"items": items, "total": total, "page": page, "page_size": page_size}

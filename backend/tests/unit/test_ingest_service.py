@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -21,9 +22,13 @@ class FakeClipStore:
         self.objects: dict[str, bytes] = {}
         self.deleted: list[str] = []
 
-    def put(self, house_id: int, event_id: int, data: bytes, content_type: str, captured_at: datetime) -> str:
+    def put(
+        self, house_id: int, event_id: int, data: bytes, content_type: str, captured_at: datetime
+    ) -> str:
         if self.fail:
-            raise DependencyUnavailableError("S3 storage unavailable", details={"error": "storage_unavailable"})
+            raise DependencyUnavailableError(
+                "S3 storage unavailable", details={"error": "storage_unavailable"}
+            )
         key = f"clips/{house_id}/evt-{event_id}.wav"
         self.objects[key] = data
         return key

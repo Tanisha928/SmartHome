@@ -25,7 +25,9 @@ class PrefsRepository(BaseRepository):
             ).all()
         )
 
-    def upsert(self, user_id: int, house_id: int, prefs: list[dict[str, Any]]) -> list[NotificationPref]:
+    def upsert(
+        self, user_id: int, house_id: int, prefs: list[dict[str, Any]]
+    ) -> list[NotificationPref]:
         out: list[NotificationPref] = []
         for p in prefs:
             existing = self.db.scalars(
