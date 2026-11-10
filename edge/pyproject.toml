@@ -1,0 +1,44 @@
+[project]
+name = "edge-agent"
+version = "0.1.0"
+description = "Smart Home edge agent: capture, SQLite outbox, upload, heartbeat (PLAN 6.3)"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx>=0.27.0",
+  "pydantic>=2.9.0",
+  "tenacity>=9.0.0",
+  "typer>=0.12.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3.0", "ruff>=0.6.0", "mypy>=1.11.0"]
+
+[project.scripts]
+edge-agent = "edge_agent.cli:app"
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["edge_agent*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["edge_agent"]

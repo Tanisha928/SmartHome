@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from datetime import UTC, datetime
 from typing import Any
 
@@ -31,7 +32,8 @@ class DeviceRepository(BaseRepository):
         )
         device = self.db.scalars(stmt).first()
         if device is None:
-            if self.db.get(Device, device_id) is None:
+            existing = self.db.get(Device, device_id)
+            if existing is None or existing.removed_at is not None:
                 raise NotFoundError("Device not found")
             raise ForbiddenError("Device out of scope")
         return device
@@ -114,6 +116,30 @@ class DeviceRepository(BaseRepository):
         )
         self.db.flush()
         return int(result.rowcount or 0)
+
+    def stale_online_ids(self, cutoff: datetime) -> builtins.list[int]:
+        """IDs of enabled, online devices whose last heartbeat is older than cutoff."""
+        return list(
+            self.db.scalars(
+                select(Device.device_id).where(
+                    Device.status == "enabled",
+                    Device.conn_state == "online",
+                    Device.last_heartbeat.is_not(None),
+                    Device.last_heartbeat < cutoff,
+                    Device.removed_at.is_(None),
+                )
+            ).all()
+        )
+
+    def list_for_house(self, house_id: int) -> builtins.list[Device]:
+        """All non-removed devices in a house (unscoped; caller must authorize)."""
+        return list(
+            self.db.scalars(
+                select(Device)
+                .where(Device.house_id == house_id, Device.removed_at.is_(None))
+                .order_by(Device.device_id)
+            ).all()
+        )
 
     def soft_remove(self, device_id: int) -> Device:
         now = datetime.now(UTC)

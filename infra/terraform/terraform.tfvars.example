@@ -1,0 +1,7 @@
+env                 = "prod"
+aws_region          = "us-west-2"
+acm_certificate_arn = "arn:aws:acm:us-west-2:123456789012:certificate/REPLACE"
+artifact_bucket     = "smarthome-artifacts-REPLACE"
+alarm_email         = "team@example.com"
+monthly_budget_usd  = 100
+# nat_per_az        = true   # HA NAT (one per AZ) — doubles NAT cost

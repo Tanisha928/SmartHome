@@ -33,6 +33,9 @@ class CommandRepository(BaseRepository):
         self.db.flush()
         return cmd
 
+    def get(self, command_id: int) -> DeviceCommand | None:
+        return self.db.get(DeviceCommand, command_id)
+
     def pending_for_device(self, device_id: int) -> list[DeviceCommand]:
         return list(
             self.db.scalars(

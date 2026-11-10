@@ -10,9 +10,9 @@ log = logging.getLogger("sweepers")
 
 
 def _try_connectivity() -> int:
-    """Sakshat plugs ConnectivitySweeper.run here."""
+    """ConnectivitySweeper.run (commits its own work)."""
     try:
-        from app.iot.connectivity_sweeper import ConnectivitySweeper  # type: ignore
+        from app.iot.connectivity_sweeper import ConnectivitySweeper
         from app.persistence.pg.session import SessionLocal
 
         db = SessionLocal()

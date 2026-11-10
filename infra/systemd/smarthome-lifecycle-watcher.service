@@ -1,0 +1,12 @@
+[Unit]
+Description=Drain the model worker when the ASG terminates this instance
+After=smarthome-worker.service
+
+[Service]
+EnvironmentFile=/etc/smarthome.env
+ExecStart=/usr/local/bin/smarthome-lifecycle-watcher
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

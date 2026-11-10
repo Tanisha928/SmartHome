@@ -1,0 +1,22 @@
+[Unit]
+Description=Smart Home model worker (SQS consumer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=smarthome
+WorkingDirectory=/opt/smarthome/backend
+EnvironmentFile=/etc/smarthome.env
+ExecStart=/opt/smarthome/venv/bin/python -m app.workers.model_worker
+Restart=always
+RestartSec=5
+# SIGTERM lets the worker finish its in-flight message (visibility timeout is 120 s).
+KillSignal=SIGTERM
+TimeoutStopSec=150
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
