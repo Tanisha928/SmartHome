@@ -36,3 +36,10 @@ coverage.xml
 # LocalStack / data
 localstack/volume/
 *.log
+
+# Terraform
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example

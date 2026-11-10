@@ -1,0 +1,61 @@
+#!/bin/bash
+# Instance bootstrap for role=${role}. Rendered by Terraform (asg.tf); bash variables use $NAME.
+set -euo pipefail
+exec > >(tee -a /var/log/smarthome-bootstrap.log) 2>&1
+
+ROLE="${role}"
+REGION="${region}"
+APP=/opt/smarthome
+
+dnf install -y python3.12 python3.12-pip jq tar amazon-cloudwatch-agent
+if [ "$ROLE" = "api" ]; then dnf install -y nginx; fi
+
+id smarthome >/dev/null 2>&1 || useradd --system --home "$APP" --shell /sbin/nologin smarthome
+mkdir -p "$APP"
+aws s3 cp "s3://${artifact_bucket}/releases/${release}.tar.gz" /tmp/release.tar.gz --region "$REGION"
+tar -xzf /tmp/release.tar.gz -C "$APP"
+python3.12 -m venv "$APP/venv"
+"$APP/venv/bin/pip" install --quiet --upgrade pip
+"$APP/venv/bin/pip" install --quiet "$APP/backend"
+
+# Runtime config: static values from Terraform + secrets/overrides from SSM Parameter Store
+# (${ssm_prefix}/DATABASE_URL, JWT_SECRET, MONGO_URL, INTERNAL_API_KEY, ...).
+{
+  echo "ENV=${env}"
+  echo "AWS_REGION=$REGION"
+  echo "AWS_ENDPOINT_URL="
+  echo "S3_BUCKET=${clips_bucket}"
+  echo "SQS_QUEUE_URL=${queue_url}"
+  echo "SQS_DLQ_URL=${dlq_url}"
+  echo "SNS_TOPIC_PREFIX=house-"
+  echo "INTERNAL_API_ENABLED=false"
+  aws ssm get-parameters-by-path --path "${ssm_prefix}/" --with-decryption --recursive \
+    --region "$REGION" --output json \
+    | jq -r '.Parameters[] | "\(.Name | split("/") | last)=\(.Value)"'
+} > /etc/smarthome.env
+chmod 600 /etc/smarthome.env
+chown -R smarthome:smarthome "$APP"
+
+install -m 0644 "$APP"/infra/systemd/*.service /etc/systemd/system/
+install -m 0755 "$APP/infra/systemd/lifecycle-watcher.sh" /usr/local/bin/smarthome-lifecycle-watcher
+systemctl daemon-reload
+
+case "$ROLE" in
+  api)
+    install -m 0644 "$APP/infra/nginx/default.conf" /etc/nginx/conf.d/smarthome.conf
+    rm -f /etc/nginx/conf.d/default.conf
+    mkdir -p /var/www/smarthome && cp -r "$APP/frontend-dist/." /var/www/smarthome/
+    systemctl enable --now smarthome-api nginx
+    ;;
+  worker)
+    echo "ASG_NAME=${asg_name}" >> /etc/smarthome.env
+    systemctl enable --now smarthome-worker smarthome-lifecycle-watcher
+    ;;
+  sweeper)
+    # Singleton: the only tier that runs migrations, so concurrent boots never race.
+    (set -a && . /etc/smarthome.env && set +a && cd "$APP/backend" \
+      && runuser -u smarthome -- "$APP/venv/bin/alembic" upgrade head)
+    systemctl enable --now smarthome-sweepers
+    ;;
+esac
+echo "bootstrap complete for $ROLE"

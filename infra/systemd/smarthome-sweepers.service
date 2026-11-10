@@ -1,0 +1,20 @@
+[Unit]
+Description=Smart Home sweepers (connectivity, stuck events, escalation, retention)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=smarthome
+WorkingDirectory=/opt/smarthome/backend
+EnvironmentFile=/etc/smarthome.env
+ExecStart=/opt/smarthome/venv/bin/python -m app.workers.sweepers
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
