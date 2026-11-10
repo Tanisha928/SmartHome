@@ -15,7 +15,9 @@ class SignupRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    # Plain str: login only looks the address up. EmailStr rejects reserved domains such as
+    # the seeded *@smarthome.local accounts, which would make them impossible to sign in.
+    email: str = Field(min_length=3, max_length=320)
     password: str
 
 
