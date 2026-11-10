@@ -1,0 +1,74 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Home Platform API",
+    "version": "0.2.0",
+    "description": "Frozen stub for MSW / openapi-typescript. Regenerate from a running backend with `make openapi`."
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Liveness",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/signup": {
+      "post": {
+        "summary": "Signup owner",
+        "responses": { "201": { "description": "Created" }, "409": { "description": "Duplicate email" } }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login",
+        "responses": { "200": { "description": "Tokens" }, "401": { "description": "Bad credentials" }, "429": { "description": "Rate limited" } }
+      }
+    },
+    "/api/auth/refresh": { "post": { "summary": "Refresh access token", "responses": { "200": { "description": "OK" } } } },
+    "/api/auth/logout": { "post": { "summary": "Logout", "responses": { "204": { "description": "Cleared" } } } },
+    "/api/users/me": {
+      "get": { "summary": "Current user", "responses": { "200": { "description": "Profile" } } },
+      "put": { "summary": "Update profile", "responses": { "200": { "description": "Profile" } } }
+    },
+    "/api/users/me/saved-views": {
+      "get": { "summary": "Saved views", "responses": { "200": { "description": "OK" } } },
+      "put": { "summary": "Replace saved views", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/houses": {
+      "get": { "summary": "List houses", "responses": { "200": { "description": "Paged" } } },
+      "post": { "summary": "Create house", "responses": { "201": { "description": "Created" }, "409": { "description": "Duplicate" } } }
+    },
+    "/api/houses/{house_id}": {
+      "get": { "summary": "House detail", "parameters": [{ "name": "house_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/ingest/events": {
+      "post": { "summary": "Ingest clip", "responses": { "202": { "description": "Queued" }, "200": { "description": "Duplicate" }, "403": { "description": "Scope" }, "413": { "description": "Too large" }, "503": { "description": "Storage down" } } }
+    },
+    "/api/events/{event_id}": {
+      "get": { "summary": "Event status", "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/admin/data/health": { "get": { "summary": "Data plane health", "responses": { "200": { "description": "OK" } } } },
+    "/api/admin/events": { "get": { "summary": "Admin event pipeline", "responses": { "200": { "description": "OK" } } } },
+    "/api/admin/events/{event_id}/retry": {
+      "post": { "summary": "Retry event", "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" }, "409": { "description": "Already scored" } } }
+    },
+    "/api/admin/inference-logs": { "get": { "summary": "Inference explorer", "responses": { "200": { "description": "OK" } } } },
+    "/api/admin/audit": { "get": { "summary": "Admin audit log", "responses": { "200": { "description": "OK" } } } },
+    "/api/admin/retention": {
+      "get": { "summary": "Get retention policy", "responses": { "200": { "description": "OK" } } },
+      "put": { "summary": "Update retention policy", "responses": { "200": { "description": "OK" }, "400": { "description": "Invalid range" } } }
+    }
+  }
+}
