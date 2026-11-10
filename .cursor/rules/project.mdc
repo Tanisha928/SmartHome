@@ -1,0 +1,25 @@
+---
+description: Smart Home platform ground rules
+globs:
+alwaysApply: true
+---
+
+# Smart Home Platform — Cursor Rules
+
+1. **Modular monolith first.** One FastAPI app (`backend/app`) containing the four components as Python packages, plus separate worker processes. Do not create microservices. Components talk only through the interfaces in PLAN.md section 3.
+2. **Only the `persistence` package touches PostgreSQL, MongoDB, S3, SQS publishing.** Every other module imports repository classes. Enforce with an import-linter test.
+3. **Tenant isolation is mandatory.** A tenant = one house. Every repository query on tenant data goes through `BaseRepository.apply_scope(query, claims)`. Admin reads of a house are written to `admin_read_audit`.
+4. **Integer IDs, ISO-8601 UTC timestamps (`...Z`), `X-Correlation-Id` on every request/response/log line/SQS message.**
+5. **Error format everywhere:** `{"error": "<machine_code>", "message": "<human text>", "details": {...optional}}`. Use 400 validation, 401 unauthenticated, 403 scope violation, 404 not found, 409 state conflict, 413 too large, 422 invalid transition, 429 rate limit, 503 dependency unavailable.
+6. **No secrets in code.** All config via env vars. Edge devices hold no AWS credentials.
+7. **Every feature ships with tests** (pytest for backend/edge, Vitest + Testing Library for frontend). A phase is done only when its acceptance checks pass.
+8. **Local dev uses Docker Compose with LocalStack** (S3, SQS, SNS) + Postgres 16 + MongoDB 7. Production uses real AWS. Switch by env var `AWS_ENDPOINT_URL`.
+9. Prefer small, typed, documented functions. Python 3.12, type hints everywhere, `ruff` + `mypy --strict` on `app/`. TypeScript `strict: true` on the frontend.
+
+## Folder ownership (CODEOWNERS)
+
+- `backend/app/persistence/**`, `backend/alembic/**`, `backend/app/core/**`, `backend/app/auth/**` → Tanisha
+- `backend/app/iot/**`, `edge/**` → Sakshat
+- `backend/app/alerts/**`, `backend/app/ml/**`, `backend/app/workers/model_worker.py` → Vritika
+- Frontend shell + shared UI → Mithil; `features/devices` → Sakshat; `features/alerts` → Vritika; `features/dataops` → Tanisha
+- Never edit another member's folder without a PR they review. Contract changes go through PLAN.md section 4 first.

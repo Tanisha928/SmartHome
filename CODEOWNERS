@@ -1,0 +1,36 @@
+# Component ownership — Group 9 Smart Home Platform
+
+# Tanisha Dave — Component 4: System Database Management
+/backend/app/persistence/ @Tanisha928
+/backend/alembic/ @Tanisha928
+/backend/app/core/ @Tanisha928
+/backend/app/auth/ @Tanisha928
+/frontend/src/features/dataops/ @Tanisha928
+/scripts/ @Tanisha928
+
+# Sakshat Patil — Component 2: Home IoT Device Manager
+/backend/app/iot/ @SakshatPatil
+/edge/ @SakshatPatil
+/frontend/src/features/devices/ @SakshatPatil
+
+# Vritika Malhotra — Component 3: AI Alert Tracking & Monitoring
+/backend/app/alerts/ @VritikaMalhotra
+/backend/app/ml/ @VritikaMalhotra
+/backend/app/workers/model_worker.py @VritikaMalhotra
+/frontend/src/features/alerts/ @VritikaMalhotra
+
+# Mithil Devisetty — Component 1: System Dashboard
+/frontend/src/routes/ @MithilDevisetty
+/frontend/src/components/ @MithilDevisetty
+/frontend/src/stores/ @MithilDevisetty
+/frontend/src/api/ @MithilDevisetty
+/frontend/src/lib/ @MithilDevisetty
+/frontend/src/styles/ @MithilDevisetty
+/frontend/src/test/ @MithilDevisetty
+/frontend/src/features/auth/ @MithilDevisetty
+/frontend/src/features/admin-live/ @MithilDevisetty
+/frontend/src/features/owner-home/ @MithilDevisetty
+
+# Shared infra
+/infra/terraform/ @SakshatPatil @Tanisha928
+/docs/ @Tanisha928 @MithilDevisetty @SakshatPatil @VritikaMalhotra
