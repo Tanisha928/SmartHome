@@ -21,7 +21,9 @@ class SavedViewsRepository(BaseRepository):
         return [{"name": r.name, "filters": json.loads(r.filters_json)} for r in rows]
 
     def replace_for_user(self, user_id: int, views: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        existing = list(self.db.scalars(select(SavedView).where(SavedView.user_id == user_id)).all())
+        existing = list(
+            self.db.scalars(select(SavedView).where(SavedView.user_id == user_id)).all()
+        )
         for row in existing:
             self.db.delete(row)
         self.db.flush()

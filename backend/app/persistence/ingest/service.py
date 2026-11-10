@@ -15,7 +15,6 @@ from app.core.errors import (
 )
 from app.core.logging import get_logger
 from app.core.middleware import new_correlation_id
-from app.persistence.pg.models import Device
 from app.persistence.queue.publisher import QueuePublisher
 from app.persistence.repositories.device_repo import DeviceRepository
 from app.persistence.repositories.event_repo import EventRepository

@@ -38,7 +38,9 @@ def ensure_indexes() -> None:
     """Create indexes per PLAN 4.2. Called at app startup."""
     settings = get_settings()
     logs = inference_logs()
-    logs.create_index([("house_id", ASCENDING), ("created_at", DESCENDING)], name="ix_logs_house_created")
+    logs.create_index(
+        [("house_id", ASCENDING), ("created_at", DESCENDING)], name="ix_logs_house_created"
+    )
     logs.create_index([("event_id", ASCENDING)], unique=True, name="ix_logs_event_id")
     logs.create_index([("model.version", ASCENDING)], name="ix_logs_model_version")
 

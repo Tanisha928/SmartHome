@@ -65,7 +65,9 @@ def house_client() -> Generator[tuple[TestClient, str], None, None]:
 def test_create_and_list_house(house_client: tuple[TestClient, str]) -> None:
     client, token = house_client
     headers = {"Authorization": f"Bearer {token}"}
-    with patch("app.persistence.api.houses.create_house_sns_topic", return_value="arn:aws:sns:test"):
+    with patch(
+        "app.persistence.api.houses.create_house_sns_topic", return_value="arn:aws:sns:test"
+    ):
         resp = client.post(
             "/api/houses",
             headers=headers,

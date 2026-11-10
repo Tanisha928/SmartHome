@@ -24,12 +24,18 @@ class HouseRepository(BaseRepository):
         super().__init__(db)
 
     def get(self, house_id: int, claims: Claims) -> House:
-        stmt = select(House).where(House.house_id == house_id).options(
-            selectinload(House.rooms),
-            selectinload(House.devices),
-            selectinload(House.users),
+        stmt = (
+            select(House)
+            .where(House.house_id == house_id)
+            .options(
+                selectinload(House.rooms),
+                selectinload(House.devices),
+                selectinload(House.users),
+            )
         )
-        stmt = self.apply_scope(stmt, claims, House.house_id, action="get_house", resource=f"house:{house_id}")
+        stmt = self.apply_scope(
+            stmt, claims, House.house_id, action="get_house", resource=f"house:{house_id}"
+        )
         house = self.db.scalars(stmt).first()
         if house is None:
             # distinguish 403 vs 404 for owners
@@ -42,15 +48,21 @@ class HouseRepository(BaseRepository):
     def list(self, claims: Claims, *, page: int = 1, page_size: int = 25) -> dict[str, Any]:
         page, page_size = _page(page, page_size)
         stmt = select(House)
-        stmt = self.apply_scope(stmt, claims, House.house_id, action="list_houses", resource="houses")
+        stmt = self.apply_scope(
+            stmt, claims, House.house_id, action="list_houses", resource="houses"
+        )
         total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         items = list(
-            self.db.scalars(stmt.order_by(House.house_id).offset((page - 1) * page_size).limit(page_size)).all()
+            self.db.scalars(
+                stmt.order_by(House.house_id).offset((page - 1) * page_size).limit(page_size)
+            ).all()
         )
         return {"items": items, "total": total, "page": page, "page_size": page_size}
 
     def create(self, **fields: Any) -> House:
-        existing = self.find_by_address(fields.get("address_line") or "", fields.get("postal_code") or "")
+        existing = self.find_by_address(
+            fields.get("address_line") or "", fields.get("postal_code") or ""
+        )
         if existing is not None:
             raise ConflictError("Duplicate house address", details={"error": "duplicate_address"})
         house = House(

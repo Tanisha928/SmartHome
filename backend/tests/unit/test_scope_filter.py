@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.deps import Claims
-from app.persistence.pg.models import Base, House
+from app.persistence.pg.models import House
 from app.persistence.repositories.base import BaseRepository
 
 

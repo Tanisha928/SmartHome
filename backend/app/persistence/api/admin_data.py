@@ -20,6 +20,7 @@ from app.persistence.repositories.event_repo import EventRepository
 from app.persistence.repositories.inference_log_repo import InferenceLogRepository
 from app.persistence.repositories.retention_repo import RetentionRepository
 
+admin_only = require_role("admin")
 router = APIRouter(tags=["admin-data"])
 
 
@@ -51,7 +52,9 @@ def _health(db: Any) -> dict[str, Any]:
     q = pub.get_queue_attributes(settings.sqs_queue_url) if settings.sqs_queue_url else {}
     dlq = pub.get_queue_attributes(settings.sqs_dlq_url) if settings.sqs_dlq_url else {}
 
-    backups = list(db.scalars(select(BackupStatus).order_by(BackupStatus.taken_at.desc()).limit(10)).all())
+    backups = list(
+        db.scalars(select(BackupStatus).order_by(BackupStatus.taken_at.desc()).limit(10)).all()
+    )
     rds_age_h = None
     mongo_age_d = None
     now = datetime.now(UTC)
@@ -80,7 +83,7 @@ def _health(db: Any) -> dict[str, Any]:
 
 @router.get("/api/admin/data/health")
 def data_health(
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     return _health(db)
@@ -93,7 +96,7 @@ def list_events(
     age_minutes: int | None = None,
     page: int = 1,
     page_size: int = 25,
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     age = timedelta(minutes=age_minutes) if age_minutes is not None else None
@@ -117,7 +120,7 @@ def list_events(
 @router.post("/api/admin/events/{event_id}/retry")
 def retry_event(
     event_id: int,
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     repo = EventRepository(db)
@@ -152,7 +155,7 @@ def inference_logs(
     label: str | None = None,
     page: int = 1,
     page_size: int = 25,
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
 ) -> dict[str, Any]:
     filters = {"house_id": house_id, "model_version": model_version, "label": label}
     return InferenceLogRepository().query(filters, page, page_size=page_size)
@@ -166,7 +169,7 @@ def audit_log(
     page: int = 1,
     page_size: int = 25,
     export: str | None = Query(default=None),
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> Any:
     result = AuditRepository(db).query(house_id, actor, action, None, page, page_size=page_size)
@@ -205,7 +208,7 @@ def audit_log(
 
 @router.get("/api/admin/retention")
 def get_retention(
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     p = RetentionRepository(db).get()
@@ -221,7 +224,7 @@ def get_retention(
 @router.put("/api/admin/retention")
 def put_retention(
     body: dict[str, Any],
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     p = RetentionRepository(db).put(updated_by=claims.user_id, **body)
@@ -234,7 +237,7 @@ def put_retention(
 
 @router.post("/api/admin/retention/run")
 def run_retention_job(
-    claims: Claims = Depends(require_role("admin")),
+    claims: Claims = Depends(admin_only),
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     return RetentionJob(db).run()
