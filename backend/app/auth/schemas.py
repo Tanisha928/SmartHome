@@ -45,3 +45,10 @@ class UpdateProfileRequest(BaseModel):
 
 class SavedViewsPayload(BaseModel):
     views: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class DashboardSettingsPayload(BaseModel):
+    default_map_latitude: float | None = Field(default=None, ge=-90, le=90)
+    default_map_longitude: float | None = Field(default=None, ge=-180, le=180)
+    show_critical_toasts: bool = True
+    play_alert_sound: bool = True

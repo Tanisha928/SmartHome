@@ -16,6 +16,7 @@ from app.core.security import (
 )
 from app.persistence.pg.models import User
 from app.persistence.repositories.saved_views_repo import SavedViewsRepository
+from app.persistence.repositories.dashboard_settings_repo import DashboardSettingsRepository
 from app.persistence.repositories.user_repo import UserRepository
 
 
@@ -24,6 +25,7 @@ class AuthService:
         self.db = db
         self.users = UserRepository(db)
         self.saved_views = SavedViewsRepository(db)
+        self.dashboard_settings = DashboardSettingsRepository(db)
 
     def signup(self, email: str, password: str, full_name: str, phone: str | None) -> User:
         return self.users.create(
@@ -77,6 +79,12 @@ class AuthService:
 
     def put_saved_views(self, user_id: int, views: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return self.saved_views.replace_for_user(user_id, views)
+
+    def get_dashboard_settings(self, user_id: int) -> dict[str, Any]:
+        return self.dashboard_settings.payload(self.dashboard_settings.get_or_create(user_id))
+
+    def put_dashboard_settings(self, user_id: int, fields: dict[str, Any]) -> dict[str, Any]:
+        return self.dashboard_settings.payload(self.dashboard_settings.update(user_id, **fields))
 
 
 def user_payload(user: User, house_ids: list[int]) -> dict[str, Any]:

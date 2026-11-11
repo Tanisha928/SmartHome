@@ -43,6 +43,10 @@ export const api = {
   signup: (body: { email: string; password: string; full_name: string; phone?: string }) => apiRequest<User>("/api/auth/signup", { method: "POST", body: JSON.stringify(body) }),
   logout: () => apiRequest<void>("/api/auth/logout", { method: "POST" }),
   me: () => apiRequest<User>("/api/users/me"),
+  dashboardSettings: () => apiRequest<DashboardSettings>("/api/users/me/dashboard-settings"),
+  saveDashboardSettings: (settings: DashboardSettingsInput) => apiRequest<DashboardSettings>("/api/users/me/dashboard-settings", { method: "PUT", body: JSON.stringify(settings) }),
 };
 
 export type User = { id: number; email: string; full_name?: string; role: "admin" | "owner"; house_ids: number[] };
+export type DashboardSettings = DashboardSettingsInput & { updated_at: string | null };
+export type DashboardSettingsInput = { default_map_latitude: number | null; default_map_longitude: number | null; show_critical_toasts: boolean; play_alert_sound: boolean };
