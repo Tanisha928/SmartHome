@@ -51,3 +51,9 @@ class UserRepository(BaseRepository):
     def house_ids_for(self, user_id: int) -> list[int]:
         rows = self.db.scalars(select(UserHouse.house_id).where(UserHouse.user_id == user_id)).all()
         return list(rows)
+
+    def list_for_house(self, house_id: int) -> list[User]:
+        stmt = select(User).join(UserHouse, UserHouse.user_id == User.user_id).where(
+            UserHouse.house_id == house_id
+        )
+        return list(self.db.scalars(stmt).all())

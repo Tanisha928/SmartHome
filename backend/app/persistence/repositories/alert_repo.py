@@ -177,6 +177,17 @@ class AlertRepository(BaseRepository):
         )
         self.db.flush()
 
+    def list_critical_pending(self, cutoff: datetime) -> list[Alert]:
+        return list(
+            self.db.scalars(
+                select(Alert).where(
+                    Alert.severity == "critical",
+                    Alert.state.in_(["new", "notified"]),
+                    Alert.created_at <= cutoff,
+                )
+            ).all()
+        )
+
     def stats(self, **filters: Any) -> dict[str, Any]:
         return {"by_severity": {}, "by_category": {}, "by_state": {}, "trend": []}
 

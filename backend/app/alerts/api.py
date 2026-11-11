@@ -9,8 +9,10 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from app.alerts.alert_state_service import AlertStateService
+from app.alerts.notification_dispatcher import NotificationDispatcher
 from app.core.deps import Claims, get_db, require_user
 from app.persistence.repositories.alert_repo import AlertRepository
+from app.persistence.repositories.notification_repo import NotificationRepository
 
 router = APIRouter(tags=["alerts"])
 
@@ -125,3 +127,18 @@ def update_alert_state(
         note=body.note,
     )
     return _serialize_alert(updated, owner_view=_owner_view(claims))
+
+
+@router.post("/api/alerts/{alert_id}/resend")
+def resend_alert_notifications(
+    alert_id: int,
+    claims: Claims = Depends(require_user),
+    db: Any = Depends(get_db),
+) -> dict[str, Any]:
+    if claims.role != "admin":
+        from app.core.errors import ForbiddenError
+
+        raise ForbiddenError("Admin role required")
+    alert = AlertRepository(db).get_detail(alert_id, claims)
+    accepted = NotificationDispatcher(NotificationRepository(db)).resend_failed(alert)
+    return {"alert_id": alert_id, "accepted": accepted}

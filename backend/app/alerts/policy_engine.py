@@ -7,6 +7,8 @@ from typing import Any, Callable
 
 from app.alerts.catalog import get_rule, select_catalog_prediction
 from app.alerts.duplicate_detector import DuplicateDetector
+from app.alerts.notification_dispatcher import NotificationDispatcher
+from app.alerts.recipient_resolver import RecipientResolver
 from app.alerts.severity_mapper import SeverityMapper
 from app.alerts.threshold_resolver import ThresholdResolver
 
@@ -31,6 +33,9 @@ class PolicyEngine:
         threshold_resolver: ThresholdResolver,
         publisher: Callable[[str, Any], None] | None = None,
         duplicate_detector: DuplicateDetector | None = None,
+        notification_dispatcher: NotificationDispatcher | None = None,
+        recipient_resolver: RecipientResolver | None = None,
+        recipient_provider: Callable[[Any], tuple[list[Any], list[Any]]] | None = None,
     ) -> None:
         self.events = event_repository
         self.devices = device_repository
@@ -39,6 +44,9 @@ class PolicyEngine:
         self.thresholds = threshold_resolver
         self.publisher = publisher
         self.duplicates = duplicate_detector or DuplicateDetector(alert_repository)
+        self.notifications = notification_dispatcher
+        self.recipients = recipient_resolver
+        self.recipient_provider = recipient_provider
 
     def handle(self, result: dict[str, Any]) -> PolicyResult:
         event_id = int(result["event_id"])
@@ -101,6 +109,19 @@ class PolicyEngine:
         self.logs.write(common_log)
         if self.publisher is not None:
             self.publisher("alert.created", alert)
+        if (
+            self.notifications is not None
+            and self.recipients is not None
+            and self.recipient_provider is not None
+        ):
+            users, preferences = self.recipient_provider(alert)
+            recipients = self.recipients.resolve(alert, users, preferences)
+            if self.notifications.dispatch(alert, recipients):
+                alert = self.alerts.transition(
+                    int(alert.alert_id), "new", "notified", None, "notifications accepted"
+                )
+                if self.publisher is not None:
+                    self.publisher("alert.updated", alert)
         return PolicyResult(event_id, "alert_created", int(alert.alert_id))
 
     def _finish(self, event: Any, decision: str, log_doc: dict[str, Any]) -> PolicyResult:

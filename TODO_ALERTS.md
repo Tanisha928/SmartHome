@@ -20,18 +20,18 @@ are committed.
 - [x] Hide confidence from owner alert responses — `e838e6b`
 - [x] Register alert routes in the FastAPI application — `e838e6b`
 - [x] Add alert API contract tests — `e838e6b`
-- [x] Replace the idle model worker with the mock-classifier pipeline
-- [x] Add policy-engine integration tests with fake repositories
-- [x] Add an end-to-end queued-event → classifier → alert flow
+- [x] Replace the idle model worker with the mock-classifier pipeline — `1072fd6`
+- [x] Add policy-engine integration tests with fake repositories — `d15d0db`
+- [x] Add an end-to-end queued-event → classifier → alert flow — `d15d0db`
 
 ## Remaining assigned backend work
 
-- [x] Add Mongo inference-log decisions for every policy outcome
-- [ ] Add recipient resolution from notification preferences
-- [ ] Add SNS notification dispatch
-- [ ] Add notification retry delays: 5, 15, and 45 seconds
-- [ ] Add notification resend endpoint
-- [ ] Add automatic escalation timer for critical alerts
+- [x] Add Mongo inference-log decisions for every policy outcome — `d15d0db`
+- [x] Add recipient resolution from notification preferences — implementation commit below
+- [x] Add SNS notification dispatch — implementation commit below
+- [x] Add notification retry delays: 5, 15, and 45 seconds — implementation commit below
+- [x] Add notification resend endpoint — implementation commit below
+- [x] Add automatic escalation timer for critical alerts — implementation commit below
 - [ ] Add complete alert filters, including date and confidence ranges
 - [ ] Add alert history and delivery details to the detail endpoint
 - [ ] Add CSV export
