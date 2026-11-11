@@ -48,22 +48,27 @@ class PolicyEngine:
         if event.processing_state == "scored":
             return PolicyResult(event_id, event.decision or "already_scored")
 
+        common_log = {
+            "event_id": event_id,
+            "house_id": event.house_id,
+            "device_id": event.device_id,
+            "s3_key": result.get("s3_key"),
+            "predictions": result.get("predictions", []),
+            "correlation_id": result.get(
+                "correlation_id", getattr(event, "correlation_id", None)
+            ),
+            "policy": {},
+        }
+
         prediction = select_catalog_prediction(result.get("predictions", []))
         if prediction is None:
-            return self._finish(event, "unknown_label", result)
+            return self._finish(event, "unknown_label", common_log)
 
         sound_type = str(prediction.get("label", prediction.get("sound_type")))
         confidence = float(prediction.get("confidence", 0.0))
         rule = get_rule(sound_type)
         threshold = self.thresholds.resolve(event.device_id, event.house_id, sound_type)
-        common_log = {
-            "event_id": event_id,
-            "house_id": event.house_id,
-            "device_id": event.device_id,
-            "predictions": result.get("predictions", []),
-            "policy": {"threshold": threshold},
-            "correlation_id": getattr(event, "correlation_id", None),
-        }
+        common_log["policy"] = {"threshold": threshold}
         if confidence < threshold:
             return self._finish(event, "below_threshold", common_log)
 

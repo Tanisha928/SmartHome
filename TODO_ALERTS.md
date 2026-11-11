@@ -21,12 +21,12 @@ are committed.
 - [x] Register alert routes in the FastAPI application — `e838e6b`
 - [x] Add alert API contract tests — `e838e6b`
 - [x] Replace the idle model worker with the mock-classifier pipeline
-- [ ] Add policy-engine integration tests with fake repositories
-- [ ] Add an end-to-end queued-event → classifier → alert flow
+- [x] Add policy-engine integration tests with fake repositories
+- [x] Add an end-to-end queued-event → classifier → alert flow
 
 ## Remaining assigned backend work
 
-- [ ] Add Mongo inference-log decisions for every policy outcome
+- [x] Add Mongo inference-log decisions for every policy outcome
 - [ ] Add recipient resolution from notification preferences
 - [ ] Add SNS notification dispatch
 - [ ] Add notification retry delays: 5, 15, and 45 seconds
