@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 from app.alerts.alert_state_service import AlertStateService
 from app.alerts.notification_dispatcher import NotificationDispatcher
 from app.alerts.policy_engine import PolicyEngine
-from app.alerts.recipient_resolver import RecipientResolver
 from app.alerts.threshold_resolver import ThresholdResolver
 from app.core.config import get_settings
 from app.core.deps import Claims, get_db, require_user
@@ -174,7 +173,9 @@ def list_alerts(
     )
     return {
         **result,
-        "items": [_serialize_alert(alert, owner_view=_owner_view(claims)) for alert in result["items"]],
+        "items": [
+            _serialize_alert(alert, owner_view=_owner_view(claims)) for alert in result["items"]
+        ],
     }
 
 
@@ -203,8 +204,15 @@ def export_alerts(
                 "" if _owner_view(claims) else alert.confidence,
                 _iso(alert.created_at) or "",
             ]
-            output.write(",".join('"' + str(value).replace('"', '""') + '"' for value in values) + "\n")
-        return Response(output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=alerts.csv"})
+            output.write(
+                ",".join('"' + str(value).replace('"', '""') + '"' for value in values)
+                + "\n"
+            )
+        return Response(
+            output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=alerts.csv"},
+        )
     try:
         from reportlab.lib.pagesizes import letter
         from reportlab.pdfgen import canvas
@@ -225,7 +233,11 @@ def export_alerts(
             pdf.showPage()
             y = 760
     pdf.save()
-    return Response(pdf_buffer.getvalue(), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=alerts.pdf"})
+    return Response(
+        pdf_buffer.getvalue(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=alerts.pdf"},
+    )
 
 
 @router.get("/api/stats/alerts")
@@ -286,10 +298,18 @@ def update_notification_preferences(
     rows = PrefsRepository(db).upsert(
         claims.user_id, house_id, [item.model_dump() for item in preferences]
     )
-    return {"house_id": house_id, "items": [
-        {"alert_category": row.alert_category, "email": row.email, "sms": row.sms, "min_severity": row.min_severity}
-        for row in rows
-    ]}
+    return {
+        "house_id": house_id,
+        "items": [
+            {
+                "alert_category": row.alert_category,
+                "email": row.email,
+                "sms": row.sms,
+                "min_severity": row.min_severity,
+            }
+            for row in rows
+        ],
+    }
 
 
 @router.get("/api/admin/thresholds")
@@ -299,10 +319,18 @@ def get_thresholds(
 ) -> dict[str, Any]:
     if claims.role != "admin":
         raise ForbiddenError("Admin role required")
-    return {"items": [
-        {"id": row.id, "scope": row.scope, "scope_id": row.scope_id, "sound_type": row.sound_type, "threshold": float(row.threshold)}
-        for row in ThresholdRepository(db).list()
-    ]}
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "scope": row.scope,
+                "scope_id": row.scope_id,
+                "sound_type": row.sound_type,
+                "threshold": float(row.threshold),
+            }
+            for row in ThresholdRepository(db).list()
+        ]
+    }
 
 
 @router.put("/api/admin/thresholds")
@@ -324,7 +352,13 @@ def update_threshold(
         threshold=body.threshold,
         user_id=claims.user_id,
     )
-    return {"id": row.id, "scope": row.scope, "scope_id": row.scope_id, "sound_type": row.sound_type, "threshold": float(row.threshold)}
+    return {
+        "id": row.id,
+        "scope": row.scope,
+        "scope_id": row.scope_id,
+        "sound_type": row.sound_type,
+        "threshold": float(row.threshold),
+    }
 
 
 @router.post("/internal/inference-results")
@@ -371,7 +405,7 @@ def update_alert_state(
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     repository = AlertRepository(db)
-    alert = repository.get_detail(alert_id, claims)
+    repository.get_detail(alert_id, claims)
     updated = AlertStateService(repository).transition(
         alert_id,
         current_state=body.expected_state,

@@ -15,7 +15,10 @@ router = APIRouter(tags=["alerts"])
 
 
 def _protocol_token(websocket: WebSocket) -> str:
-    values = [value.strip() for value in websocket.headers.get("sec-websocket-protocol", "").split(",")]
+    values = [
+        value.strip()
+        for value in websocket.headers.get("sec-websocket-protocol", "").split(",")
+    ]
     if len(values) != 2 or values[0] != "bearer" or not values[1]:
         raise UnauthorizedError("WebSocket bearer subprotocol required")
     return values[1]
@@ -47,7 +50,7 @@ async def alerts_socket(websocket: WebSocket, house_id: int | None = None) -> No
         while True:
             try:
                 await asyncio.wait_for(websocket.receive_text(), timeout=25)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 await websocket.send_json({"type": "ping"})
     except WebSocketDisconnect:
         pass

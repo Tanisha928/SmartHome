@@ -251,7 +251,9 @@ class AlertRepository(BaseRepository):
         alerts = list(self.db.scalars(stmt).all())
         grouped: dict[str, dict[str, int]] = {}
         for alert in alerts:
-            row = grouped.setdefault(alert.sound_type or "unknown", {"total": 0, "false_positive": 0})
+            row = grouped.setdefault(
+                alert.sound_type or "unknown", {"total": 0, "false_positive": 0}
+            )
             row["total"] += 1
             if alert.state == "false_positive":
                 row["false_positive"] += 1

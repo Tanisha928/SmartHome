@@ -11,8 +11,8 @@ from typing import Any
 import boto3
 from botocore.client import BaseClient
 
-from app.alerts.policy_engine import PolicyEngine
 from app.alerts.notification_dispatcher import NotificationDispatcher
+from app.alerts.policy_engine import PolicyEngine
 from app.alerts.recipient_resolver import RecipientResolver
 from app.alerts.threshold_resolver import ThresholdResolver
 from app.core.config import get_settings
@@ -25,8 +25,8 @@ from app.persistence.repositories.event_repo import EventRepository
 from app.persistence.repositories.inference_log_repo import InferenceLogRepository
 from app.persistence.repositories.notification_repo import NotificationRepository
 from app.persistence.repositories.prefs_repo import PrefsRepository
-from app.persistence.repositories.user_repo import UserRepository
 from app.persistence.repositories.threshold_repo import ThresholdRepository
+from app.persistence.repositories.user_repo import UserRepository
 from app.persistence.s3.clip_store import ClipStore
 
 log = logging.getLogger("model_worker")

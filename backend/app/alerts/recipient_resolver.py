@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 SEVERITY_RANK = {"critical": 4, "high": 3, "medium": 2, "low": 1}
 
 

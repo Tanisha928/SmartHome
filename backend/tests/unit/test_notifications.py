@@ -39,7 +39,10 @@ class FakeNotifications:
         self.states: list[tuple[int, str]] = []
 
     def create_pending(self, _alert_id: int, recipients: list[dict[str, Any]]) -> list[Any]:
-        self.rows = [SimpleNamespace(notification_id=i + 1, status="pending") for i in range(len(recipients))]
+        self.rows = [
+            SimpleNamespace(notification_id=i + 1, status="pending")
+            for i in range(len(recipients))
+        ]
         return self.rows
 
     def list_for_alert(self, _alert_id: int) -> list[Any]:

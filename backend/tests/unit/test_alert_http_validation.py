@@ -10,7 +10,6 @@ from app.core.deps import Claims, get_db, require_user
 from app.core.errors import ForbiddenError, StateConflictError
 from app.main import create_app
 
-
 ALERT = SimpleNamespace(
     alert_id=7,
     event_id=8,
@@ -30,9 +29,22 @@ ALERT = SimpleNamespace(
 
 
 class FakeAlertRepository:
-    def list(self, filters: dict[str, object], _page: int, claims: Claims, **_kwargs: object) -> dict[str, object]:
+    def __init__(self, _db: object) -> None:
+        pass
+
+    def list(
+        self,
+        filters: dict[str, object],
+        _page: int,
+        claims: Claims,
+        **_kwargs: object,
+    ) -> dict[str, object]:
         requested_house = filters.get("house_id")
-        if claims.role != "admin" and requested_house is not None and requested_house not in claims.house_ids:
+        if (
+            claims.role != "admin"
+            and requested_house is not None
+            and requested_house not in claims.house_ids
+        ):
             raise ForbiddenError("House out of scope")
         return {"items": [ALERT], "total": 1, "page": 1, "page_size": 100}
 
@@ -47,7 +59,12 @@ class FakeAlertRepository:
         return ALERT
 
     def stats(self, **_filters: object) -> dict[str, object]:
-        return {"total": 1, "by_severity": {"high": 1}, "by_category": {"security": 1}, "by_state": {"acknowledged": 1}}
+        return {
+            "total": 1,
+            "by_severity": {"high": 1},
+            "by_category": {"security": 1},
+            "by_state": {"acknowledged": 1},
+        }
 
     def false_alert_stats(self, **_filters: object) -> list[object]:
         return []
@@ -57,6 +74,9 @@ class FakeAlertRepository:
 
 
 class FakePrefs:
+    def __init__(self, _db: object) -> None:
+        pass
+
     def get_for_user_house(self, *_args: object) -> list[object]:
         return []
 
@@ -109,7 +129,7 @@ def test_scoped_alert_reads_reject_other_house(alert_client: TestClient, path: s
 def test_state_conflict_is_returned_as_http_409(alert_client: TestClient) -> None:
     response = alert_client.patch(
         "/api/alerts/7/state",
-        json={"to_state": "resolved", "expected_state": "acknowledged"},
+        json={"to_state": "escalated", "expected_state": "new"},
     )
     assert response.status_code == 409
     assert response.json()["error"] == "state_conflict"

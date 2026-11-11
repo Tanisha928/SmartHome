@@ -6,7 +6,6 @@ from typing import Any
 
 from app.core.errors import UnprocessableError
 
-
 _ADMIN_TRANSITIONS: dict[str, frozenset[str]] = {
     "new": frozenset({"notified", "acknowledged", "escalated", "false_positive"}),
     "notified": frozenset({"acknowledged", "escalated", "false_positive"}),

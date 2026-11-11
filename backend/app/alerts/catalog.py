@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -44,7 +45,11 @@ def select_catalog_prediction(predictions: Iterable[dict[str, Any]]) -> dict[str
         for prediction in predictions
         if str(prediction.get("label", prediction.get("sound_type", ""))) in SOUND_CATALOG
     ]
-    return max(accepted, key=lambda prediction: float(prediction.get("confidence", 0))) if accepted else None
+    return (
+        max(accepted, key=lambda prediction: float(prediction.get("confidence", 0)))
+        if accepted
+        else None
+    )
 
 
 def get_rule(sound_type: str) -> SoundRule:

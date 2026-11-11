@@ -6,9 +6,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-import boto3
-
 from app.core.config import get_settings
+from app.persistence.notifications.sns import create_sns_client
 
 
 class NotificationDispatcher:
@@ -73,7 +72,7 @@ class NotificationDispatcher:
         }
         if settings.aws_endpoint_url:
             client_kwargs["endpoint_url"] = settings.aws_endpoint_url
-        client = boto3.client("sns", **client_kwargs)
+        client = create_sns_client(client_kwargs)
         if row.channel == "sms" and getattr(row, "recipient_label", None):
             client.publish(PhoneNumber=row.recipient_label, Message=self._message(alert))
         else:

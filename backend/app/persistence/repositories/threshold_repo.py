@@ -18,7 +18,15 @@ class ThresholdRepository:
     def list(self) -> list[ThresholdOverride]:
         return list(self.db.scalars(select(ThresholdOverride).order_by(ThresholdOverride.id)).all())
 
-    def upsert(self, *, scope: str, scope_id: int | None, sound_type: str, threshold: float, user_id: int) -> ThresholdOverride:
+    def upsert(
+        self,
+        *,
+        scope: str,
+        scope_id: int | None,
+        sound_type: str,
+        threshold: float,
+        user_id: int,
+    ) -> ThresholdOverride:
         row = self.db.scalars(
             select(ThresholdOverride).where(
                 ThresholdOverride.scope == scope,

@@ -40,8 +40,9 @@ class FakeDevices:
 
 
 class FakeAlerts:
-    def __init__(self, recent: Any | None = None) -> None:
+    def __init__(self, recent: Any | None = None, events: FakeEvents | None = None) -> None:
         self.recent = recent
+        self.events = events
         self.created: list[dict[str, Any]] = []
         self.suppressed: list[int] = []
 
@@ -53,6 +54,8 @@ class FakeAlerts:
 
     def create_with_history_and_mark_event_scored(self, **kwargs: Any) -> Any:
         self.created.append(kwargs)
+        if self.events is not None:
+            self.events.mark_scored(int(kwargs["event_id"]), "alert_created")
         return SimpleNamespace(alert_id=101)
 
 
@@ -65,9 +68,11 @@ class FakeLogs:
         return str(len(self.documents))
 
 
-def make_engine(*, recent: Any | None = None) -> tuple[PolicyEngine, FakeEvents, FakeAlerts, FakeLogs]:
+def make_engine(
+    *, recent: Any | None = None
+) -> tuple[PolicyEngine, FakeEvents, FakeAlerts, FakeLogs]:
     events = FakeEvents()
-    alerts = FakeAlerts(recent)
+    alerts = FakeAlerts(recent, events)
     logs = FakeLogs()
     engine = PolicyEngine(
         event_repository=events,
