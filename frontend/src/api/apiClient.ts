@@ -1,4 +1,4 @@
-export type ApiError = { status: number; error: string; message: string; correlationId: string };
+export type ApiError = { status: number; error: string; message: string; correlationId: string; details?: Record<string, unknown> };
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 let accessToken: string | null = null;
@@ -32,7 +32,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retrie
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as Partial<ApiError>;
     if (response.status === 403 && typeof window !== "undefined") window.dispatchEvent(new CustomEvent("access-denied", { detail: { message: body.message ?? "Access denied", correlationId: id } }));
-    throw { status: response.status, error: body.error ?? "request_failed", message: body.message ?? response.statusText, correlationId: body.correlationId ?? id } satisfies ApiError;
+    throw { status: response.status, error: body.error ?? "request_failed", message: body.message ?? response.statusText, details: body.details, correlationId: body.correlationId ?? id } satisfies ApiError;
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
