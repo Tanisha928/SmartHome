@@ -47,5 +47,5 @@ export const handlers = [
   http.put("*/api/notification-prefs", async ({ request }) => HttpResponse.json({ house_id: 1, items: await request.json() })),
   http.get("*/api/admin/thresholds", () => HttpResponse.json({ items: demoThresholds })),
   http.put("*/api/admin/thresholds", async ({ request }) => HttpResponse.json(await request.json())),
-  http.patch("*/api/alerts/:id/state", async ({ request }) => { const body = await request.json() as { to_state?: string; note?: string }; demoCurrentAlert = { ...demoCurrentAlert, state: (body.to_state ?? demoCurrentAlert.state) as typeof demoCurrentAlert.state, version: demoCurrentAlert.version + 1, updated_at: new Date().toISOString() }; return HttpResponse.json(demoCurrentAlert); }),
+  http.patch("*/api/alerts/:id/state", async ({ request }) => { if (request.headers.get("x-demo-conflict") === "true") return HttpResponse.json({ error: "state_conflict", message: "State changed", details: { current_state: "acknowledged", last_actor: "another-admin@example.com" } }, { status: 409 }); const body = await request.json() as { to_state?: string; note?: string }; demoCurrentAlert = { ...demoCurrentAlert, state: (body.to_state ?? demoCurrentAlert.state) as typeof demoCurrentAlert.state, version: demoCurrentAlert.version + 1, updated_at: new Date().toISOString() }; return HttpResponse.json(demoCurrentAlert); }),
 ];
