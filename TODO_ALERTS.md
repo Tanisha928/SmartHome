@@ -67,4 +67,5 @@ are committed.
 
 ## Deferred model work
 
-- [ ] Integrate the real supplied ML model through `ModelClassifier`
+- [x] Add configurable supplied-model adapter through `ModelClassifier` — `9dc7619`
+- [ ] Connect the actual supplied ML model entrypoint — no model artifact or package is present in this repository
