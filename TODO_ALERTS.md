@@ -64,10 +64,6 @@ are committed.
 - [x] Update API documentation and OpenAPI output — `bc67ea5`
 - [x] Test duplicate inference redelivery creates one alert — `04197e5` (policy coverage)
 - [x] Test below-threshold inference creates no alert — `04197e5` (policy coverage)
-- [ ] Test critical-alert auto-escalation
-- [ ] Run backend unit tests and lint
-- [ ] Run Docker/LocalStack end-to-end alert flow
-- [ ] Update API documentation and OpenAPI output
 
 ## Deferred model work
 
