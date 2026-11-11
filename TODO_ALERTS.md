@@ -60,7 +60,7 @@ are committed.
 - [x] Test stale state conflicts and invalid transitions through HTTP — `bc67ea5`
 - [x] Test critical-alert auto-escalation — `8ccd836`
 - [ ] Run backend unit tests and lint — Python/pytest/ruff unavailable locally
-- [ ] Run Docker/LocalStack end-to-end alert flow — Docker daemon unavailable locally
+- [x] Run Docker/LocalStack end-to-end alert flow — `bc83539` (Docker Compose + PostgreSQL migration + LocalStack S3/SQS + model-worker alert creation)
 - [x] Update API documentation and OpenAPI output — `bc67ea5`
 - [x] Test duplicate inference redelivery creates one alert — `04197e5` (policy coverage)
 - [x] Test below-threshold inference creates no alert — `04197e5` (policy coverage)
