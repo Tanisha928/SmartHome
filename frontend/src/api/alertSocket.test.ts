@@ -1,0 +1,5 @@
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AlertSocket } from "./alertSocket";
+afterEach(() => vi.restoreAllMocks());
+describe("AlertSocket", () => { it("opens with bearer auth and enters catch-up then live", async () => { const states: string[] = []; class FakeSocket { onopen?: () => void; onmessage?: (event: MessageEvent) => void; onclose?: () => void; close() {} constructor(public url: string, public protocols: string[]) { setTimeout(() => this.onopen?.(), 0); } } vi.stubGlobal("WebSocket", FakeSocket); vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [], total: 0, page: 1, page_size: 100 }), { status: 200, headers: { "Content-Type": "application/json" } }))); const socket = new AlertSocket({ houseIds: [1], token: "jwt", onState: (state) => states.push(state), onAlerts: () => undefined, onMessage: () => undefined }); socket.start(); await new Promise((resolve) => setTimeout(resolve, 10)); socket.stop(); expect(states).toContain("connecting"); expect(states).toContain("catching_up"); expect(states).toContain("live"); }); });

@@ -26,14 +26,16 @@ export const alertsApi = {
   list: (filters: AlertFilters = {}) =>
     request<AlertPage>(`/api/alerts${query({ ...filters, page: 1, page_size: 100 })}`),
   detail: (id: number) => request<AlertDetail>(`/api/alerts/${id}`),
-  transition: (id: number, to_state: string, expected_state: string, note?: string) =>
-    request(`/api/alerts/${id}/state`, {
-      method: "PATCH",
-      body: JSON.stringify({ to_state, expected_state, note }),
-    }),
+  transition: (id: number, to_state: string, expected_state: string, note?: string) => {
+    const headers = new Headers();
+    if (import.meta.env.VITE_DEMO_MODE === "true" && localStorage.getItem("smarthome:demo-conflict") === "true") headers.set("X-Demo-Conflict", "true");
+    return request(`/api/alerts/${id}/state`, { method: "PATCH", headers, body: JSON.stringify({ to_state, expected_state, note }) });
+  },
   stats: (houseId?: number) => request<AlertStats>(`/api/stats/alerts${query({ house_id: houseId })}`),
   falseStats: (houseId?: number) =>
     request<{ items: FalseAlertStat[] }>(`/api/stats/false-alerts${query({ house_id: houseId })}`),
+  savedViews: () => request<{ views: AlertFilters[] }>("/api/users/me/saved-views"),
+  saveViews: (views: AlertFilters[]) => request<{ views: AlertFilters[] }>("/api/users/me/saved-views", { method: "PUT", body: JSON.stringify({ views }) }),
   preferences: (houseId: number) =>
     request<{ house_id: number; items: NotificationPreference[] }>(`/api/notification-prefs${query({ house_id: houseId })}`),
   savePreferences: (houseId: number, items: NotificationPreference[]) =>
