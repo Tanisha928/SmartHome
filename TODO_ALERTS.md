@@ -56,10 +56,10 @@ are committed.
 ## Security and integration validation
 
 - [ ] Test every alert endpoint across two house scopes
-- [ ] Test admin, owner, family, and caregiver permissions
+- [x] Test admin, owner, family, and caregiver permissions — implementation commit below
 - [ ] Test stale state conflicts and invalid transitions through HTTP
-- [ ] Test duplicate inference redelivery creates one alert
-- [ ] Test below-threshold inference creates no alert
+- [x] Test duplicate inference redelivery creates one alert — implementation commit below
+- [x] Test below-threshold inference creates no alert — implementation commit below
 - [ ] Test critical-alert auto-escalation
 - [ ] Run backend unit tests and lint
 - [ ] Run Docker/LocalStack end-to-end alert flow
