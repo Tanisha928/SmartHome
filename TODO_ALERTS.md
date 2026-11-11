@@ -59,7 +59,7 @@ are committed.
 - [x] Test admin, owner, family, and caregiver permissions — `04197e5`
 - [x] Test stale state conflicts and invalid transitions through HTTP — `bc67ea5`
 - [x] Test critical-alert auto-escalation — `8ccd836`
-- [ ] Run backend unit tests and lint — container run: 12 pytest failures and 27 Ruff findings remain
+- [x] Run backend unit tests and lint — `0d4df20` (113 passed, 1 skipped; Ruff clean)
 - [x] Run Docker/LocalStack end-to-end alert flow — `bc83539` (Docker Compose + PostgreSQL migration + LocalStack S3/SQS + model-worker alert creation)
 - [x] Update API documentation and OpenAPI output — `bc67ea5`
 - [x] Test duplicate inference redelivery creates one alert — `04197e5` (policy coverage)
