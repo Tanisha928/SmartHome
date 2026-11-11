@@ -27,11 +27,11 @@ are committed.
 ## Remaining assigned backend work
 
 - [x] Add Mongo inference-log decisions for every policy outcome — `d15d0db`
-- [x] Add recipient resolution from notification preferences — implementation commit below
-- [x] Add SNS notification dispatch — implementation commit below
-- [x] Add notification retry delays: 5, 15, and 45 seconds — implementation commit below
-- [x] Add notification resend endpoint — implementation commit below
-- [x] Add automatic escalation timer for critical alerts — implementation commit below
+- [x] Add recipient resolution from notification preferences — `8ccd836`
+- [x] Add SNS notification dispatch — `8ccd836`
+- [x] Add notification retry delays: 5, 15, and 45 seconds — `8ccd836`
+- [x] Add notification resend endpoint — `8ccd836`
+- [x] Add automatic escalation timer for critical alerts — `8ccd836`
 - [ ] Add complete alert filters, including date and confidence ranges
 - [ ] Add alert history and delivery details to the detail endpoint
 - [ ] Add CSV export
