@@ -6,6 +6,7 @@ let refreshPromise: Promise<string | null> | null = null;
 
 export function setAccessToken(token: string | null) { accessToken = token; }
 export function getAccessToken() { return accessToken; }
+export function refreshAccessToken() { return refresh(); }
 
 function correlationId() { return crypto.randomUUID(); }
 
