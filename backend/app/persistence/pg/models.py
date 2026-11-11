@@ -436,6 +436,12 @@ class DashboardSettings(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), primary_key=True)
     default_map_latitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
     default_map_longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
-    show_critical_toasts: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
-    play_alert_sound: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    show_critical_toasts: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    play_alert_sound: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )

@@ -15,8 +15,8 @@ from app.core.security import (
     verify_password,
 )
 from app.persistence.pg.models import User
-from app.persistence.repositories.saved_views_repo import SavedViewsRepository
 from app.persistence.repositories.dashboard_settings_repo import DashboardSettingsRepository
+from app.persistence.repositories.saved_views_repo import SavedViewsRepository
 from app.persistence.repositories.user_repo import UserRepository
 
 

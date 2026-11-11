@@ -17,7 +17,9 @@ class DashboardSettingsRepository(BaseRepository):
         super().__init__(db)
 
     def get_or_create(self, user_id: int) -> DashboardSettings:
-        settings = self.db.scalar(select(DashboardSettings).where(DashboardSettings.user_id == user_id))
+        settings = self.db.scalar(
+            select(DashboardSettings).where(DashboardSettings.user_id == user_id)
+        )
         if settings is None:
             settings = DashboardSettings(user_id=user_id)
             self.db.add(settings)
@@ -35,8 +37,16 @@ class DashboardSettingsRepository(BaseRepository):
     @staticmethod
     def payload(settings: DashboardSettings) -> dict[str, Any]:
         return {
-            "default_map_latitude": float(settings.default_map_latitude) if isinstance(settings.default_map_latitude, Decimal) else settings.default_map_latitude,
-            "default_map_longitude": float(settings.default_map_longitude) if isinstance(settings.default_map_longitude, Decimal) else settings.default_map_longitude,
+            "default_map_latitude": (
+                float(settings.default_map_latitude)
+                if isinstance(settings.default_map_latitude, Decimal)
+                else settings.default_map_latitude
+            ),
+            "default_map_longitude": (
+                float(settings.default_map_longitude)
+                if isinstance(settings.default_map_longitude, Decimal)
+                else settings.default_map_longitude
+            ),
             "show_critical_toasts": settings.show_critical_toasts,
             "play_alert_sound": settings.play_alert_sound,
             "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,

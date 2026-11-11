@@ -7,9 +7,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request, Response
 
 from app.auth.schemas import (
+    DashboardSettingsPayload,
     LoginRequest,
     SavedViewsPayload,
-    DashboardSettingsPayload,
     SignupRequest,
     TokenResponse,
     UpdateProfileRequest,
@@ -127,7 +127,9 @@ def put_saved_views(
 
 
 @router.get("/api/users/me/dashboard-settings")
-def get_dashboard_settings(claims: Claims = Depends(require_user), db: Any = Depends(get_db)) -> dict[str, Any]:
+def get_dashboard_settings(
+    claims: Claims = Depends(require_user), db: Any = Depends(get_db)
+) -> dict[str, Any]:
     return AuthService(db).get_dashboard_settings(claims.user_id)
 
 
