@@ -40,7 +40,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retrie
 
 async function demoRequest<T>(path: string, init: RequestInit): Promise<T> {
   const { demoAlerts, demoPage, demoStats } = await import("../demo/fixtures");
-  if (path === "/api/auth/login") return { access_token: "demo-token", user: { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] } } as T;
+  if (path === "/api/auth/login") { const body = init.body ? JSON.parse(String(init.body)) as { email?: string } : {}; const owner = body.email?.includes("owner"); return { access_token: "demo-token", user: { id: owner ? 2 : 1, email: body.email ?? "admin@example.com", full_name: owner ? "Demo Owner" : "Demo Admin", role: owner ? "owner" : "admin", house_ids: owner ? [1] : [1] } } as T; }
   if (path === "/api/auth/signup") return { id: 2, email: "owner@example.com", full_name: "Demo Owner", role: "owner", house_ids: [] } as T;
   if (path === "/api/users/me") return { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] } as T;
   if (path.startsWith("/api/alerts") && init.method === "PATCH") return demoAlerts[0] as T;
