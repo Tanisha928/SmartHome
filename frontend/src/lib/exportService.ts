@@ -1,0 +1,3 @@
+export function csvCell(value: unknown) { const text = value == null ? "" : String(value); const safe = /^[=+\-@]/.test(text) ? `'${text}` : text; return /[",\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe; }
+export function toCsv<T extends Record<string, unknown>>(rows: T[], columns: (keyof T)[]) { return [columns.map(String).map(csvCell).join(","), ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(","))].join("\r\n"); }
+export function downloadCsv(filename: string, content: string) { const blob = new Blob([content], { type: "text/csv;charset=utf-8" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url); }

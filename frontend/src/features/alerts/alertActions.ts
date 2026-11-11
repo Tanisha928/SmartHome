@@ -1,0 +1,3 @@
+import { alertsApi } from "./api";
+import type { Alert, AlertState } from "./types";
+export async function changeAlert(alert: Alert, nextState: AlertState, note?: string) { try { return await alertsApi.transition(alert.alert_id, nextState, alert.state, note); } catch (error) { const apiError = error as { status?: number; message?: string; details?: { last_actor?: string; current_state?: string } }; if (apiError.status === 409) throw new Error(`This alert changed by ${apiError.details?.last_actor ?? "another user"}. Refresh and try again.`); throw new Error(apiError.message ?? "Unable to update alert."); } }

@@ -7,22 +7,11 @@ import type {
   NotificationPreference,
   Threshold,
 } from "./types";
+import { apiRequest } from "../../api/apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set("X-Correlation-Id", crypto.randomUUID());
-  if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const token = sessionStorage.getItem("access_token");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({})) as { message?: string };
-    throw new Error(body.message ?? response.statusText);
-  }
-  return response.json() as Promise<T>;
-}
+const request = <T>(path: string, init?: RequestInit) => apiRequest<T>(path, init);
 
 function query(params: Record<string, string | number | undefined>): string {
   const values = new URLSearchParams();

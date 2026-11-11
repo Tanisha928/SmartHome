@@ -1,0 +1,2 @@
+const labels: Record<string, string> = { fall: "Possible fall", smoke_fire_alarm: "Smoke alarm", intruder: "Stranger at door", glass_break: "Glass breaking", loud_argument: "Loud argument", gunshot: "Loud bang (possible gunshot)", distress: "Someone may need help", explosion: "Explosion sound", unusual_inactivity: "Unusual quiet", animal: "Animal sound" };
+export function friendlyLabel(sound: string | null | undefined) { return sound ? labels[sound] ?? sound.replaceAll("_", " ") : "Unknown sound"; }
