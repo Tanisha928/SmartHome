@@ -36,7 +36,7 @@ services:
       DEFAULT_REGION: us-west-2
       AWS_DEFAULT_REGION: us-west-2
     volumes:
-      - ./localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+      - ./localstack/init-aws-posix.sh:/etc/localstack/init/ready.d/init-aws.sh
       - localstackdata:/var/lib/localstack
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]

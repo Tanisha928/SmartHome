@@ -1,0 +1,12 @@
+import { useEffect, useState } from "react";
+import { alertsApi } from "./api";
+import type { Threshold } from "./types";
+
+export function ThresholdManagement() {
+  const [items, setItems] = useState<Threshold[]>([]);
+  const [form, setForm] = useState<Omit<Threshold, "id">>({ scope: "global", scope_id: null, sound_type: "glass_break", threshold: 0.8 });
+  const [message, setMessage] = useState("");
+  useEffect(() => { alertsApi.thresholds().then((data) => setItems(data.items)).catch((error: unknown) => setMessage(String(error))); }, []);
+  async function save() { try { const saved = await alertsApi.saveThreshold(form); setItems((current) => [...current.filter((item) => !(item.scope === saved.scope && item.scope_id === saved.scope_id && item.sound_type === saved.sound_type)), saved]); setMessage("Threshold saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to save threshold."); } }
+  return <section className="card"><div className="section-heading"><div><p className="eyebrow">Administrator controls</p><h2>Alert thresholds</h2><p className="muted">Overrides apply by device, then house, then globally.</p></div></div><div className="threshold-form"><select value={form.scope} onChange={(event) => setForm({ ...form, scope: event.target.value as Threshold["scope"], scope_id: event.target.value === "global" ? null : form.scope_id })}><option value="global">Global</option><option value="house">House</option><option value="device">Device</option></select><input type="number" min="0.5" max="0.99" step="0.01" value={form.scope_id ?? ""} placeholder="Scope ID" disabled={form.scope === "global"} onChange={(event) => setForm({ ...form, scope_id: event.target.value ? Number(event.target.value) : null })} /><input value={form.sound_type} onChange={(event) => setForm({ ...form, sound_type: event.target.value })} placeholder="Sound type" /><input type="number" min="0.5" max="0.99" step="0.01" value={form.threshold} onChange={(event) => setForm({ ...form, threshold: Number(event.target.value) })} /><button className="primary" onClick={save}>Save override</button></div><div className="threshold-list">{items.map((item) => <div className="threshold-row" key={item.id}><span>{item.scope}{item.scope_id === null ? "" : ` #${item.scope_id}`}</span><strong>{item.sound_type}</strong><b>{Math.round(item.threshold * 100)}%</b></div>)}</div>{message && <p className="notice">{message}</p>}</section>;
+}
