@@ -7,11 +7,12 @@ type Options = { houseIds: number[]; token: string; refreshToken?: () => Promise
 export class AlertSocket {
   private socket: WebSocket | null = null;
   private timer: number | undefined;
+  private pollTimer: number | undefined;
   private attempt = 0;
   private lastSeen: string | undefined;
   constructor(private readonly options: Options) {}
-  start() { this.connect(); }
-  stop() { if (this.timer) window.clearTimeout(this.timer); this.socket?.close(); this.socket = null; this.options.onState("disconnected"); }
+  start() { this.connect(); this.pollTimer = window.setInterval(() => this.poll(), 30_000); }
+  stop() { if (this.timer) window.clearTimeout(this.timer); if (this.pollTimer) window.clearInterval(this.pollTimer); this.socket?.close(); this.socket = null; this.options.onState("disconnected"); }
   private connect() {
     this.options.onState("connecting");
     const protocol = location.protocol === "https:" ? "wss" : "ws";
@@ -22,6 +23,6 @@ export class AlertSocket {
     this.socket.onerror = () => this.socket?.close();
   }
   private async catchUp() { try { const page = await apiRequest<AlertPage>(`/api/alerts?updated_since=${encodeURIComponent(this.lastSeen ?? "")}`); this.options.onAlerts(page.items); this.options.onState("live"); this.attempt = 0; } catch { this.options.onState("backoff_polling"); this.poll(); this.scheduleRetry(); } }
-  private poll() { void apiRequest<AlertPage>("/api/alerts?updated_since=").then((page) => this.options.onAlerts(page.items)).catch(() => undefined); }
+  private poll() { this.options.onState("backoff_polling"); void apiRequest<AlertPage>(`/api/alerts?updated_since=${encodeURIComponent(this.lastSeen ?? "")}`).then((page) => { this.options.onAlerts(page.items); this.options.onState("live"); }).catch(() => undefined); }
   private scheduleRetry() { this.attempt += 1; const delay = Math.min(30_000, 1_000 * 2 ** (this.attempt - 1)); this.options.onState("backoff_polling"); this.timer = window.setTimeout(() => this.connect(), delay); }
 }

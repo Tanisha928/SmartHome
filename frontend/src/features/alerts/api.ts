@@ -34,6 +34,8 @@ export const alertsApi = {
   stats: (houseId?: number) => request<AlertStats>(`/api/stats/alerts${query({ house_id: houseId })}`),
   falseStats: (houseId?: number) =>
     request<{ items: FalseAlertStat[] }>(`/api/stats/false-alerts${query({ house_id: houseId })}`),
+  savedViews: () => request<{ views: AlertFilters[] }>("/api/users/me/saved-views"),
+  saveViews: (views: AlertFilters[]) => request<{ views: AlertFilters[] }>("/api/users/me/saved-views", { method: "PUT", body: JSON.stringify({ views }) }),
   preferences: (houseId: number) =>
     request<{ house_id: number; items: NotificationPreference[] }>(`/api/notification-prefs${query({ house_id: houseId })}`),
   savePreferences: (houseId: number, items: NotificationPreference[]) =>
