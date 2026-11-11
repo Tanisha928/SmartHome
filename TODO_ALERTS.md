@@ -32,17 +32,17 @@ are committed.
 - [x] Add notification retry delays: 5, 15, and 45 seconds — `8ccd836`
 - [x] Add notification resend endpoint — `8ccd836`
 - [x] Add automatic escalation timer for critical alerts — `8ccd836`
-- [x] Add complete alert filters, including date and confidence ranges — implementation commit below
-- [x] Add alert history and delivery details to the detail endpoint — implementation commit below
-- [x] Add CSV export — implementation commit below
-- [x] Add PDF export — implementation commit below
-- [x] Add alert statistics endpoint — implementation commit below
-- [x] Add false-alert statistics and low-sample flag — implementation commit below
-- [x] Add notification-preferences endpoints — implementation commit below
-- [x] Add admin threshold-management endpoints — implementation commit below
-- [x] Add guarded internal inference-results adapter — implementation commit below
-- [x] Add WebSocket alert hub with JWT subprotocol authentication — implementation commit below
-- [x] Add WebSocket house-isolation tests — implementation commit below
+- [x] Add complete alert filters, including date and confidence ranges — `0266d05`
+- [x] Add alert history and delivery details to the detail endpoint — `0266d05`
+- [x] Add CSV export — `0266d05`
+- [x] Add PDF export — `0266d05`
+- [x] Add alert statistics endpoint — `0266d05`
+- [x] Add false-alert statistics and low-sample flag — `0266d05`
+- [x] Add notification-preferences endpoints — `0266d05`
+- [x] Add admin threshold-management endpoints — `0266d05`
+- [x] Add guarded internal inference-results adapter — `0266d05`
+- [x] Add WebSocket alert hub with JWT subprotocol authentication — `0266d05`
+- [x] Add WebSocket house-isolation tests — `0266d05`
 
 ## Frontend work
 
