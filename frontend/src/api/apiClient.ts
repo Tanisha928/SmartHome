@@ -1,7 +1,6 @@
 export type ApiError = { status: number; error: string; message: string; correlationId: string };
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -19,7 +18,6 @@ async function refresh(): Promise<string | null> {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
-  if (DEMO_MODE) return demoRequest<T>(path, init);
   const id = correlationId();
   const headers = new Headers(init.headers);
   headers.set("X-Correlation-Id", id);
@@ -32,21 +30,11 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retrie
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as Partial<ApiError>;
+    if (response.status === 403 && typeof window !== "undefined") window.dispatchEvent(new CustomEvent("access-denied", { detail: { message: body.message ?? "Access denied", correlationId: id } }));
     throw { status: response.status, error: body.error ?? "request_failed", message: body.message ?? response.statusText, correlationId: body.correlationId ?? id } satisfies ApiError;
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
-}
-
-async function demoRequest<T>(path: string, init: RequestInit): Promise<T> {
-  const { demoAlerts, demoPage, demoStats } = await import("../demo/fixtures");
-  if (path === "/api/auth/login") { const body = init.body ? JSON.parse(String(init.body)) as { email?: string } : {}; const owner = body.email?.includes("owner"); return { access_token: "demo-token", user: { id: owner ? 2 : 1, email: body.email ?? "admin@example.com", full_name: owner ? "Demo Owner" : "Demo Admin", role: owner ? "owner" : "admin", house_ids: owner ? [1] : [1] } } as T; }
-  if (path === "/api/auth/signup") return { id: 2, email: "owner@example.com", full_name: "Demo Owner", role: "owner", house_ids: [] } as T;
-  if (path === "/api/users/me") return { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] } as T;
-  if (path.startsWith("/api/alerts") && init.method === "PATCH") return demoAlerts[0] as T;
-  if (path.startsWith("/api/alerts")) return demoPage as T;
-  if (path.startsWith("/api/stats/alerts")) return demoStats as T;
-  return {} as T;
 }
 
 export const api = {

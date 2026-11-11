@@ -57,3 +57,9 @@ jobs:
       - name: Test
         run: |
           if [ -f package.json ] && grep -q '"test"' package.json; then npm test -- --run; else echo "skip"; fi
+      - name: Build
+        run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run e2e
