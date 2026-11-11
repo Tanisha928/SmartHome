@@ -16,7 +16,7 @@ from app.alerts.policy_engine import PolicyEngine
 from app.alerts.recipient_resolver import RecipientResolver
 from app.alerts.threshold_resolver import ThresholdResolver
 from app.core.config import get_settings
-from app.ml.classifier import Classifier, MockClassifier, Prediction
+from app.ml.classifier import Classifier, MockClassifier, ModelClassifier, Prediction
 from app.ml.preprocess import prepare_clip
 from app.persistence.pg.session import SessionLocal
 from app.persistence.repositories.alert_repo import AlertRepository
@@ -149,9 +149,19 @@ def _build_worker() -> tuple[ModelWorker, Any]:
         recipient_resolver=RecipientResolver(),
         recipient_provider=recipient_provider,
     )
-    classifier: Classifier = MockClassifier()
-    if settings.classifier != "mock":
-        log.warning("unsupported_classifier_falling_back_to_mock", classifier=settings.classifier)
+    if settings.classifier == "mock":
+        classifier: Classifier = MockClassifier()
+    elif settings.classifier == "model":
+        classifier = ModelClassifier.from_settings(settings)
+        log.info(
+            "supplied_model_loaded",
+            extra={
+                "model_name": classifier.model_name,
+                "model_version": classifier.model_version,
+            },
+        )
+    else:
+        raise ValueError(f"Unsupported CLASSIFIER value: {settings.classifier}")
     worker = ModelWorker(
         queue=_sqs_client(),
         queue_url=settings.sqs_queue_url,
