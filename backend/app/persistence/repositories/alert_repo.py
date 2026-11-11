@@ -132,6 +132,16 @@ class AlertRepository(BaseRepository):
             stmt = stmt.where(Alert.sound_type == filters["sound_type"])
         if filters.get("updated_since") is not None:
             stmt = stmt.where(Alert.updated_at >= filters["updated_since"])
+        if filters.get("from") is not None:
+            stmt = stmt.where(Alert.created_at >= filters["from"])
+        if filters.get("to") is not None:
+            stmt = stmt.where(Alert.created_at <= filters["to"])
+        if filters.get("min_confidence") is not None:
+            stmt = stmt.where(Alert.confidence >= filters["min_confidence"])
+        if filters.get("max_confidence") is not None:
+            stmt = stmt.where(Alert.confidence <= filters["max_confidence"])
+        if filters.get("q") is not None:
+            stmt = stmt.where(Alert.alert_id == filters["q"])
         stmt = self.apply_scope(
             stmt, claims, Alert.house_id, action="list_alerts", resource="alerts"
         )
@@ -144,6 +154,24 @@ class AlertRepository(BaseRepository):
             ).all()
         )
         return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+    def get_detail_bundle(self, alert_id: int, claims: Claims) -> dict[str, Any]:
+        alert = self.get_detail(alert_id, claims)
+        history = list(
+            self.db.scalars(
+                select(AlertStateHistory)
+                .where(AlertStateHistory.alert_id == alert_id)
+                .order_by(AlertStateHistory.changed_at.asc())
+            ).all()
+        )
+        from app.persistence.pg.models import AlertNotification
+
+        deliveries = list(
+            self.db.scalars(
+                select(AlertNotification).where(AlertNotification.alert_id == alert_id)
+            ).all()
+        )
+        return {"alert": alert, "history": history, "deliveries": deliveries}
 
     def get_detail(self, alert_id: int, claims: Claims) -> Alert:
         stmt = select(Alert).where(Alert.alert_id == alert_id)
@@ -189,7 +217,54 @@ class AlertRepository(BaseRepository):
         )
 
     def stats(self, **filters: Any) -> dict[str, Any]:
-        return {"by_severity": {}, "by_category": {}, "by_state": {}, "trend": []}
+        stmt = select(Alert)
+        house_id = filters.get("house_id")
+        if house_id is not None:
+            stmt = stmt.where(Alert.house_id == house_id)
+        elif filters.get("house_ids") is not None:
+            stmt = stmt.where(Alert.house_id.in_(filters["house_ids"]))
+        if filters.get("from") is not None:
+            stmt = stmt.where(Alert.created_at >= filters["from"])
+        if filters.get("to") is not None:
+            stmt = stmt.where(Alert.created_at <= filters["to"])
+        alerts = list(self.db.scalars(stmt).all())
+        by_severity: dict[str, int] = {}
+        by_category: dict[str, int] = {}
+        by_state: dict[str, int] = {}
+        for alert in alerts:
+            by_severity[alert.severity] = by_severity.get(alert.severity, 0) + 1
+            by_category[alert.alert_category] = by_category.get(alert.alert_category, 0) + 1
+            by_state[alert.state] = by_state.get(alert.state, 0) + 1
+        return {
+            "total": len(alerts),
+            "by_severity": by_severity,
+            "by_category": by_category,
+            "by_state": by_state,
+        }
+
+    def false_alert_stats(self, **filters: Any) -> list[dict[str, Any]]:
+        stmt = select(Alert)
+        if filters.get("house_id") is not None:
+            stmt = stmt.where(Alert.house_id == filters["house_id"])
+        elif filters.get("house_ids") is not None:
+            stmt = stmt.where(Alert.house_id.in_(filters["house_ids"]))
+        alerts = list(self.db.scalars(stmt).all())
+        grouped: dict[str, dict[str, int]] = {}
+        for alert in alerts:
+            row = grouped.setdefault(alert.sound_type or "unknown", {"total": 0, "false_positive": 0})
+            row["total"] += 1
+            if alert.state == "false_positive":
+                row["false_positive"] += 1
+        return [
+            {
+                "sound_type": sound_type,
+                **values,
+                "rate": values["false_positive"] / values["total"] if values["total"] else 0,
+                "sample_count": values["total"],
+                "low_sample": values["total"] < 20,
+            }
+            for sound_type, values in sorted(grouped.items())
+        ]
 
     def raise_state_conflict(
         self, current_state: str, last_actor: int | None, changed_at: Any

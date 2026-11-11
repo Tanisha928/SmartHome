@@ -26,6 +26,7 @@ from app.persistence.repositories.inference_log_repo import InferenceLogReposito
 from app.persistence.repositories.notification_repo import NotificationRepository
 from app.persistence.repositories.prefs_repo import PrefsRepository
 from app.persistence.repositories.user_repo import UserRepository
+from app.persistence.repositories.threshold_repo import ThresholdRepository
 from app.persistence.s3.clip_store import ClipStore
 
 log = logging.getLogger("model_worker")
@@ -122,6 +123,7 @@ def _build_worker() -> tuple[ModelWorker, Any]:
     alerts = AlertRepository(db)
     users = UserRepository(db)
     prefs = PrefsRepository(db)
+    thresholds = ThresholdRepository(db).as_mappings()
 
     def recipient_provider(alert: Any) -> tuple[list[Any], list[Any]]:
         house_users = users.list_for_house(int(alert.house_id))
@@ -137,7 +139,12 @@ def _build_worker() -> tuple[ModelWorker, Any]:
         device_repository=DeviceRepository(db),
         alert_repository=alerts,
         inference_log_repository=InferenceLogRepository(),
-        threshold_resolver=ThresholdResolver(default=settings.default_threshold),
+        threshold_resolver=ThresholdResolver(
+            device_overrides=thresholds["device"],
+            house_overrides=thresholds["house"],
+            global_overrides=thresholds["global"],
+            default=settings.default_threshold,
+        ),
         notification_dispatcher=NotificationDispatcher(NotificationRepository(db)),
         recipient_resolver=RecipientResolver(),
         recipient_provider=recipient_provider,

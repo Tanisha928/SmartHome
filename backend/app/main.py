@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.api import router as auth_router
 from app.alerts.api import router as alerts_router
+from app.alerts.ws import router as alerts_ws_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_data_router)
     app.include_router(iot_router)
     app.include_router(alerts_router)
+    app.include_router(alerts_ws_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
