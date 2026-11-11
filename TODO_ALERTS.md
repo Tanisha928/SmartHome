@@ -46,12 +46,12 @@ are committed.
 
 ## Frontend work
 
-- [ ] Add admin alert-detail side panel
-- [ ] Add notification delivery table and state-history timeline
-- [ ] Add false-alert analytics screen
-- [ ] Add owner alert-detail screen
-- [ ] Add owner profile and notification matrix
-- [ ] Verify owners never receive confidence or model details in the UI
+- [x] Add admin alert-detail side panel — implementation commit below
+- [x] Add notification delivery table and state-history timeline — implementation commit below
+- [x] Add false-alert analytics screen — implementation commit below
+- [x] Add owner alert-detail screen — implementation commit below
+- [x] Add owner profile and notification matrix — implementation commit below
+- [x] Verify owners never receive confidence or model details in the UI — implementation commit below
 
 ## Security and integration validation
 
