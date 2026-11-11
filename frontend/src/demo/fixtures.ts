@@ -1,0 +1,4 @@
+import type { Alert, AlertPage, AlertStats } from "../features/alerts/types";
+export const demoAlerts: Alert[] = [{ alert_id: 101, event_id: 501, house_id: 1, room_id: 2, device_id: 8, alert_category: "safety", sound_type: "fall", severity: "high", state: "new", suppressed_count: 0, version: 1, confidence: .94, created_at: "2026-11-11T18:00:00Z", updated_at: "2026-11-11T18:00:00Z" }, { alert_id: 100, event_id: 500, house_id: 1, room_id: 1, device_id: 7, alert_category: "security", sound_type: "glass_break", severity: "critical", state: "resolved", suppressed_count: 1, version: 3, confidence: .98, created_at: "2026-11-11T16:30:00Z", updated_at: "2026-11-11T17:00:00Z" }];
+export const demoPage: AlertPage = { items: demoAlerts, total: demoAlerts.length, page: 1, page_size: 100 };
+export const demoStats: AlertStats = { total: 2, by_severity: { critical: 1, high: 1 }, by_category: { safety: 1, security: 1 }, by_state: { new: 1, resolved: 1 } };

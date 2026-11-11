@@ -2,7 +2,7 @@ import { apiRequest } from "./apiClient";
 import type { Alert, AlertPage } from "../features/alerts/types";
 
 export type SocketState = "disconnected" | "connecting" | "catching_up" | "live" | "backoff_polling" | "refreshing_token";
-type Options = { houseIds: number[]; token: string; onState: (state: SocketState) => void; onAlerts: (alerts: Alert[]) => void; onMessage: (event: { type: "alert.created" | "alert.updated"; alert: Alert }) => void };
+type Options = { houseIds: number[]; token: string; refreshToken?: () => Promise<string | null>; onState: (state: SocketState) => void; onAlerts: (alerts: Alert[]) => void; onMessage: (event: { type: "alert.created" | "alert.updated"; alert: Alert }) => void };
 
 export class AlertSocket {
   private socket: WebSocket | null = null;
@@ -21,6 +21,7 @@ export class AlertSocket {
     this.socket.onclose = () => { if (this.socket) this.scheduleRetry(); };
     this.socket.onerror = () => this.socket?.close();
   }
-  private async catchUp() { try { const page = await apiRequest<AlertPage>(`/api/alerts?updated_since=${encodeURIComponent(this.lastSeen ?? "")}`); this.options.onAlerts(page.items); this.options.onState("live"); this.attempt = 0; } catch { this.options.onState("backoff_polling"); this.scheduleRetry(); } }
+  private async catchUp() { try { const page = await apiRequest<AlertPage>(`/api/alerts?updated_since=${encodeURIComponent(this.lastSeen ?? "")}`); this.options.onAlerts(page.items); this.options.onState("live"); this.attempt = 0; } catch { this.options.onState("backoff_polling"); this.poll(); this.scheduleRetry(); } }
+  private poll() { void apiRequest<AlertPage>("/api/alerts?updated_since=").then((page) => this.options.onAlerts(page.items)).catch(() => undefined); }
   private scheduleRetry() { this.attempt += 1; const delay = Math.min(30_000, 1_000 * 2 ** (this.attempt - 1)); this.options.onState("backoff_polling"); this.timer = window.setTimeout(() => this.connect(), delay); }
 }

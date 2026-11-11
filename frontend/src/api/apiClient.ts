@@ -1,6 +1,7 @@
 export type ApiError = { status: number; error: string; message: string; correlationId: string };
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -18,6 +19,7 @@ async function refresh(): Promise<string | null> {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
+  if (DEMO_MODE) return demoRequest<T>(path, init);
   const id = correlationId();
   const headers = new Headers(init.headers);
   headers.set("X-Correlation-Id", id);
@@ -34,6 +36,17 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retrie
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+async function demoRequest<T>(path: string, init: RequestInit): Promise<T> {
+  const { demoAlerts, demoPage, demoStats } = await import("../demo/fixtures");
+  if (path === "/api/auth/login") return { access_token: "demo-token", user: { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] } } as T;
+  if (path === "/api/auth/signup") return { id: 2, email: "owner@example.com", full_name: "Demo Owner", role: "owner", house_ids: [] } as T;
+  if (path === "/api/users/me") return { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] } as T;
+  if (path.startsWith("/api/alerts") && init.method === "PATCH") return demoAlerts[0] as T;
+  if (path.startsWith("/api/alerts")) return demoPage as T;
+  if (path.startsWith("/api/stats/alerts")) return demoStats as T;
+  return {} as T;
 }
 
 export const api = {

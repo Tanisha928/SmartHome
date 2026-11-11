@@ -5,6 +5,11 @@ import { Login } from "./routes/Login";
 import { Signup } from "./routes/Signup";
 import { RouteGuard } from "./components/RouteGuard";
 import { useAuthStore } from "./stores/authStore";
+import { AdminLive } from "./routes/AdminLive";
+import { AdminHistory } from "./routes/AdminHistory";
+import { Settings } from "./routes/Settings";
+import { OwnerHome } from "./routes/OwnerHome";
+import { OwnerHistory } from "./routes/OwnerHistory";
 
 function Shell({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
@@ -15,5 +20,5 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 function Dashboard({ role }: { role: "admin" | "owner" }) { const user = useAuthStore((state) => state.user); return <Shell><AlertDashboard role={role} houseId={user?.house_ids[0] ?? 1} /></Shell>; }
-function AppRoutes() { return <Routes><Route path="/login" element={<Login />} /><Route path="/signup" element={<Signup />} /><Route element={<RouteGuard role="admin" />}><Route path="/admin" element={<Dashboard role="admin" />} /><Route path="/admin/history" element={<Dashboard role="admin" />} /><Route path="/admin/settings" element={<Dashboard role="admin" />} /></Route><Route element={<RouteGuard role="owner" />}><Route path="/owner" element={<Dashboard role="owner" />} /><Route path="/owner/history" element={<Dashboard role="owner" />} /><Route path="/owner/profile" element={<Dashboard role="owner" />} /></Route><Route path="*" element={<Navigate to="/admin" replace />} /></Routes>; }
+function AppRoutes() { const user = useAuthStore((state) => state.user); const houseId = user?.house_ids[0] ?? 1; return <Routes><Route path="/login" element={<Login />} /><Route path="/signup" element={<Signup />} /><Route element={<RouteGuard role="admin" />}><Route path="/admin" element={<Shell><AdminLive houseId={houseId} /></Shell>} /><Route path="/admin/history" element={<Shell><AdminHistory houseId={houseId} /></Shell>} /><Route path="/admin/settings" element={<Shell><Settings /></Shell>} /><Route path="/admin/*" element={<Dashboard role="admin" />} /></Route><Route element={<RouteGuard role="owner" />}><Route path="/owner" element={<Shell><OwnerHome houseId={houseId} /></Shell>} /><Route path="/owner/history" element={<Shell><OwnerHistory houseId={houseId} /></Shell>} /><Route path="/owner/profile" element={<Dashboard role="owner" />} /></Route><Route path="*" element={<Navigate to="/admin" replace />} /></Routes>; }
 export default function App() { return <BrowserRouter><AppRoutes /></BrowserRouter>; }
