@@ -69,6 +69,17 @@
     "/api/admin/retention": {
       "get": { "summary": "Get retention policy", "responses": { "200": { "description": "OK" } } },
       "put": { "summary": "Update retention policy", "responses": { "200": { "description": "OK" }, "400": { "description": "Invalid range" } } }
-    }
+    },
+    "/api/alerts": { "get": { "summary": "List scoped alerts", "responses": { "200": { "description": "Scoped paginated alerts" }, "403": { "description": "House out of scope" } } } },
+    "/api/alerts/{alert_id}": { "get": { "summary": "Alert detail with history and deliveries", "responses": { "200": { "description": "Alert detail" }, "403": { "description": "House out of scope" } } } },
+    "/api/alerts/{alert_id}/state": { "patch": { "summary": "Transition alert state", "responses": { "200": { "description": "Updated alert" }, "409": { "description": "Stale state conflict" }, "422": { "description": "Invalid transition" } } } },
+    "/api/alerts/{alert_id}/resend": { "post": { "summary": "Resend failed notifications", "responses": { "200": { "description": "Accepted" }, "403": { "description": "Admin required" } } } },
+    "/api/alerts/export": { "get": { "summary": "Export alerts as CSV or PDF", "responses": { "200": { "description": "Download" } } } },
+    "/api/stats/alerts": { "get": { "summary": "Alert statistics", "responses": { "200": { "description": "Counts by severity, category, and state" } } } },
+    "/api/stats/false-alerts": { "get": { "summary": "False-alert statistics", "responses": { "200": { "description": "False-positive rates and low-sample flags" } } } },
+    "/api/notification-prefs": { "get": { "summary": "Get notification preferences", "responses": { "200": { "description": "Notification matrix" } } }, "put": { "summary": "Update notification preferences", "responses": { "200": { "description": "Updated matrix" } } } },
+    "/api/admin/thresholds": { "get": { "summary": "List thresholds", "responses": { "200": { "description": "Threshold overrides" } } }, "put": { "summary": "Update threshold", "responses": { "200": { "description": "Updated threshold" }, "403": { "description": "Admin required" } } } },
+    "/internal/inference-results": { "post": { "summary": "Apply internal inference result", "responses": { "200": { "description": "Policy decision" }, "403": { "description": "Internal key required" } } } },
+    "/ws/alerts": { "get": { "summary": "House-scoped alert WebSocket", "responses": { "101": { "description": "Switching protocols" }, "1008": { "description": "Unauthorized or out of scope" } } } }
   }
 }

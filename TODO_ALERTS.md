@@ -55,9 +55,13 @@ are committed.
 
 ## Security and integration validation
 
-- [ ] Test every alert endpoint across two house scopes
+- [x] Test every alert endpoint across two house scopes — implementation commit below
 - [x] Test admin, owner, family, and caregiver permissions — `04197e5`
-- [ ] Test stale state conflicts and invalid transitions through HTTP
+- [x] Test stale state conflicts and invalid transitions through HTTP — implementation commit below
+- [x] Test critical-alert auto-escalation — `8ccd836`
+- [ ] Run backend unit tests and lint — Python/pytest/ruff unavailable locally
+- [ ] Run Docker/LocalStack end-to-end alert flow — Docker daemon unavailable locally
+- [x] Update API documentation and OpenAPI output — implementation commit below
 - [x] Test duplicate inference redelivery creates one alert — `04197e5` (policy coverage)
 - [x] Test below-threshold inference creates no alert — `04197e5` (policy coverage)
 - [ ] Test critical-alert auto-escalation
