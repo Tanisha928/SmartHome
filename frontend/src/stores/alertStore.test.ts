@@ -1,0 +1,5 @@
+import { describe, expect, it } from "vitest";
+import { useAlertStore } from "./alertStore";
+import type { Alert } from "../features/alerts/types";
+const alert = (id: number, house_id: number, version: number): Alert => ({ alert_id: id, event_id: id, house_id, room_id: 1, device_id: 1, alert_category: "safety", sound_type: "fall", severity: "high", state: "new", suppressed_count: 0, version, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" });
+describe("alertStore", () => { it("dedupes, ignores old versions, and enforces house scope", () => { useAlertStore.getState().replace([]); const apply = useAlertStore.getState().applyMessage; apply({ type: "alert.created", alert: alert(1, 1, 1) }, [1]); apply({ type: "alert.updated", alert: alert(1, 1, 1) }, [1]); apply({ type: "alert.updated", alert: alert(1, 1, 0) }, [1]); apply({ type: "alert.created", alert: alert(2, 2, 1) }, [1]); expect(useAlertStore.getState().alerts).toHaveLength(1); expect(useAlertStore.getState().alerts[0].alert_id).toBe(1); }); });
