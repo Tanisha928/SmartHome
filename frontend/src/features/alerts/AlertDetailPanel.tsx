@@ -21,7 +21,12 @@ export function AlertDetailPanel({ alert, role, onClose, onChanged }: Props) {
       setMessage("State updated.");
       onChanged();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to update state.");
+      const apiError = error as { status?: number; message?: string; details?: { last_actor?: string; current_state?: string } };
+      if (apiError.status === 409) {
+        setMessage(`Conflict: changed by ${apiError.details?.last_actor ?? "another user"}${apiError.details?.current_state ? ` (now ${apiError.details.current_state})` : ""}. Refresh and try again.`);
+      } else {
+        setMessage(error instanceof Error ? error.message : "Unable to update state.");
+      }
     }
   }
 

@@ -46,6 +46,10 @@
       "get": { "summary": "Saved views", "responses": { "200": { "description": "OK" } } },
       "put": { "summary": "Replace saved views", "responses": { "200": { "description": "OK" } } }
     },
+    "/api/users/me/dashboard-settings": {
+      "get": { "summary": "Get dashboard settings", "responses": { "200": { "description": "Dashboard settings" } } },
+      "put": { "summary": "Update dashboard settings", "responses": { "200": { "description": "Updated dashboard settings" } } }
+    },
     "/api/houses": {
       "get": { "summary": "List houses", "responses": { "200": { "description": "Paged" } } },
       "post": { "summary": "Create house", "responses": { "201": { "description": "Created" }, "409": { "description": "Duplicate" } } }
