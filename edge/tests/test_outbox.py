@@ -100,3 +100,26 @@ def test_simulator_burst_has_unique_timestamps(rig: Rig) -> None:
     assert len({i.captured_at for i in items}) == 20
     assert len({i.clip_path for i in items}) == 20
     assert all(i.clip_path.exists() for i in items)
+
+
+def test_file_capture_burst_gets_unique_timestamps(tmp_path: Path) -> None:
+    from edge_agent.capture import FileCapture
+
+    ob = Outbox(tmp_path / "o.sqlite")
+    cap = FileCapture(ob, 1, tmp_path / "inbox", tmp_path / "spool")
+    for n in range(5):
+        _clip(tmp_path / "inbox", f"glass_break-{n}.wav")
+    assert len(cap.poll()) == 5
+    items = ob.oldest_unsent(10)
+    assert len({i.captured_at for i in items}) == 5
+    assert len({i.clip_path for i in items}) == 5 and all(i.clip_path.exists() for i in items)
+
+
+def test_file_capture_discard_drops_inbox(tmp_path: Path) -> None:
+    from edge_agent.capture import FileCapture
+
+    ob = Outbox(tmp_path / "o.sqlite")
+    cap = FileCapture(ob, 1, tmp_path / "inbox", tmp_path / "spool")
+    _clip(tmp_path / "inbox", "glass_break.wav")
+    assert cap.discard() == 1
+    assert cap.poll() == [] and ob.depth() == 0

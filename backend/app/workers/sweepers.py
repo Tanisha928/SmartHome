@@ -102,4 +102,7 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    import os
+
+    # SWEEPER_INTERVAL_SEC lets demos see offline/escalation changes in seconds, not minutes.
+    main(sleep_sec=float(os.environ.get("SWEEPER_INTERVAL_SEC", "60")))

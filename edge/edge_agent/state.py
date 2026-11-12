@@ -13,6 +13,7 @@ class AgentState:
     threshold: float | None = None
     restart_requested: bool = False
     stopped: bool = False  # set after a 403 quarantine: credentials/scope are wrong
+    auth_failed: bool = False  # the API rejected our device key; nothing can work until it is fixed
     offline_until: float = 0.0  # simulator: pretend the network is down until this time
     started_at: float = field(default_factory=time.time)
 

@@ -24,6 +24,8 @@ def _setup(env_file: Path | None, verbose: bool) -> EdgeConfig:
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    if not verbose:  # one line per HTTP request drowns out heartbeats/uploads; -v brings it back
+        logging.getLogger("httpx").setLevel(logging.WARNING)
     cfg = EdgeConfig.load(env_file)
     if not cfg.device_id or not cfg.api_key:
         raise typer.BadParameter("DEVICE_ID and API_KEY must be set (env or --env-file)")
@@ -44,7 +46,11 @@ def run(
 ) -> None:
     """Run the agent: watch CLIP_DIR/inbox, upload, heartbeat."""
     cfg = _setup(env_file, verbose)
-    Agent(cfg).run(_stop_on_signals())
+    agent = Agent(cfg)
+    agent.run(_stop_on_signals())
+    if agent.state.auth_failed:
+        typer.echo("Device key rejected. Get a new key from A4 (Rotate key) and restart.", err=True)
+        raise typer.Exit(code=2)
 
 
 @app.command()

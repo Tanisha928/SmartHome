@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from edge_agent.config import EdgeConfig
-from edge_agent.device_auth import DeviceAuth
+from edge_agent.device_auth import DeviceAuth, DeviceAuthError
 from edge_agent.outbox import Outbox
 from edge_agent.state import AgentState
 
@@ -52,10 +52,21 @@ class ConfigSync:
                 self.auth.invalidate()
                 resp = self.client.post(url, json=body, headers=self.auth.headers())
             resp.raise_for_status()
+        except DeviceAuthError:
+            log.error("device key rejected (rotated, revoked or removed); stopping the agent")
+            self.state.stopped = True
+            self.state.auth_failed = True
+            return None
         except httpx.HTTPError as exc:
             log.warning("heartbeat failed: %s", exc)
             return None
         data: dict[str, Any] = resp.json()
+        log.info(
+            "heartbeat ok (buffer_depth=%d, capture=%s, commands=%d)",
+            body["buffer_depth"],
+            "on" if self.state.capture_enabled else "off",
+            len(data.get("commands", [])),
+        )
         self.apply(data)
         return data
 
@@ -70,6 +81,7 @@ class ConfigSync:
             self._ack(int(cmd["command_id"]), result)
 
     def _run_command(self, command: str) -> str:
+        log.info("command received: %s", command)
         if command == "enable":
             self._set_capture(True)
         elif command == "disable":

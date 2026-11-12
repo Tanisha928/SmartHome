@@ -55,6 +55,10 @@ class Agent:
             self._next_heartbeat = now + self.cfg.heartbeat_sec
         if self.state.capture_enabled:
             self.capture.poll()
+        else:
+            discard = getattr(self.capture, "discard", None)
+            if discard is not None:
+                discard()
         if now >= self._next_send:
             self._next_send = now + self.cfg.send_cycle_sec
             result = self.sender.send_cycle()
@@ -79,6 +83,8 @@ class Agent:
                     on_tick(self)
             except Exception:
                 log.exception("agent tick failed")
+            if self.state.auth_failed:
+                break  # a bad key never fixes itself; exit so the operator sees it
             stop.wait(0.5)
         self.outbox.close()
 
