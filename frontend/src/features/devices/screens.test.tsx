@@ -178,6 +178,33 @@ describe("A4 DeviceManagement", () => {
   });
 });
 
+describe("A4 commands", () => {
+  it("Send reboot queues a reboot command; a second press explains it is pending", async () => {
+    let posts = 0;
+    mockFetch((c) => {
+      if (c.method === "POST" && c.path === "/api/devices/501/command") {
+        posts += 1;
+        return posts === 1
+          ? respond(202, { command_id: 7, command: "reboot", status: "pending" })
+          : respond(409, { error: "command_pending", message: "pending" });
+      }
+      return undefined;
+    });
+    render(<DeviceManagement />);
+    fireEvent.click(await screen.findByRole("button", { name: /#501 · Kitchen sensor/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send reboot" }));
+    });
+    expect(calls.find((c) => c.path === "/api/devices/501/command")?.body).toEqual({ command: "reboot" });
+    expect(await screen.findByText(/Reboot queued for Kitchen sensor/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /#501 · Kitchen sensor/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send reboot" }));
+    });
+    expect(await screen.findByText(/already waiting for the device/)).toBeTruthy();
+  });
+});
+
 describe("A8 FleetView", () => {
   it("shows connectivity tiles and filters the table", async () => {
     mockFetch();

@@ -108,3 +108,9 @@ def test_simulate_count_stops_after_n_intervals(
     )
     assert result.exit_code == 0, result.output
     assert len(api.stored) == 3
+
+
+def test_rejected_key_stops_agent_cleanly(rig: Rig) -> None:
+    rig.cfg.api_key = "dk_rotated_away"
+    assert rig.sync.heartbeat() is None
+    assert rig.state.auth_failed and rig.state.stopped

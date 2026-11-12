@@ -168,6 +168,12 @@ export function DeviceManagement() {
       return status === "enabled" ? "Device enabled" : "Device disabled";
     });
 
+  const reboot = (d: Device) =>
+    void run(async () => {
+      await devicesApi.sendCommand(d.device_id, "reboot");
+      return `Reboot queued for ${d.label ?? d.serial_no}; the device picks it up on its next heartbeat`;
+    });
+
   const rotate = (d: Device) =>
     void run(async () => {
       const res = await devicesApi.rotateKey(d.device_id);
@@ -317,6 +323,9 @@ export function DeviceManagement() {
                       Enable
                     </button>
                   )}
+                  <button type="button" style={button} onClick={() => reboot(selected)}>
+                    Send reboot
+                  </button>
                   <button type="button" style={button} onClick={() => rotate(selected)}>
                     Rotate key
                   </button>

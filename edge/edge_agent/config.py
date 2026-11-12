@@ -19,7 +19,7 @@ class EdgeConfig(BaseModel):
     send_cycle_sec: float = Field(default=5.0, gt=0)
     buffer_cap_gb: float = Field(default=2.0, gt=0)
     batch_size: int = Field(default=10, ge=1)
-    max_backoff_sec: float = 300.0
+    max_backoff_sec: float = Field(default=300.0, gt=0)  # cap on upload retry backoff
     wifi_rssi: int = -55  # reported in heartbeats until a real radio probe exists
 
     @property
@@ -55,4 +55,5 @@ _ENV_KEYS = {
     "SEND_CYCLE_SEC": "send_cycle_sec",
     "BUFFER_CAP_GB": "buffer_cap_gb",
     "WIFI_RSSI": "wifi_rssi",
+    "MAX_BACKOFF_SEC": "max_backoff_sec",
 }

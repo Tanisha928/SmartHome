@@ -1,0 +1,11 @@
+# Demo overrides (scripts/demo_reset.sh): device goes offline 1 minute after its last
+# heartbeat instead of 10, and the sweeper checks every 10 s instead of every 60 s.
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d
+services:
+  backend:
+    volumes:
+      - ./scripts:/scripts:ro
+  sweepers:
+    environment:
+      OFFLINE_AFTER_MIN: "1"
+      SWEEPER_INTERVAL_SEC: "10"
