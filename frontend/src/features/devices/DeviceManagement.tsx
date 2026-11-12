@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { devicesApi, errorText, listAllDevices } from "./api";
+import { applyDeviceUpdate, useDeviceEvents } from "./live";
 import {
   buildHouseTree,
   deviceHealth,
@@ -84,6 +85,8 @@ export function DeviceManagement() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useDeviceEvents(undefined, (update) => setDevices((all) => applyDeviceUpdate(all, update)));
 
   const tree = useMemo(
     () => filterTree(buildHouseTree(houses, rooms, devices), query),

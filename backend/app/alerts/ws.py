@@ -30,22 +30,25 @@ async def alerts_socket(websocket: WebSocket, house_id: int | None = None) -> No
         claims = claims_from_payload(decode_token(_protocol_token(websocket)))
         if claims.type != "user":
             raise ForbiddenError("User token required")
+        is_admin = claims.role == "admin"
+        selected_house: int | None
         if house_id is None:
-            if claims.role == "admin":
-                raise ForbiddenError("Admin WebSocket requires house_id")
-            if len(claims.house_ids) != 1:
+            if is_admin:
+                selected_house = None  # admin group: every house (PLAN 8.8)
+            elif len(claims.house_ids) != 1:
                 raise ForbiddenError("House selection required")
-            selected_house = claims.house_ids[0]
+            else:
+                selected_house = claims.house_ids[0]
         else:
             selected_house = house_id
-            if claims.role != "admin" and selected_house not in claims.house_ids:
+            if not is_admin and selected_house not in claims.house_ids:
                 raise ForbiddenError("House out of scope")
         await websocket.accept(subprotocol="bearer")
     except Exception:
         await websocket.close(code=1008)
         return
 
-    await alert_hub.connect(selected_house, websocket)
+    await alert_hub.connect(selected_house, websocket, admin=is_admin)
     try:
         while True:
             try:

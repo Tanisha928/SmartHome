@@ -10,35 +10,37 @@ log = logging.getLogger("sweepers")
 
 
 def _try_connectivity() -> int:
-    """ConnectivitySweeper.run (commits its own work)."""
-    try:
-        from app.iot.connectivity_sweeper import ConnectivitySweeper
-        from app.persistence.pg.session import SessionLocal
+    """ConnectivitySweeper.run (commits its own work and publishes device.updated)."""
+    from app.iot.connectivity_sweeper import ConnectivitySweeper
+    from app.persistence.pg.session import SessionLocal
 
-        db = SessionLocal()
-        try:
-            return int(ConnectivitySweeper(db).run())
-        finally:
-            db.close()
-    except Exception as exc:
-        log.debug("connectivity_sweeper_unavailable: %s", exc)
+    db = SessionLocal()
+    try:
+        return int(ConnectivitySweeper(db).run())
+    except Exception:
+        db.rollback()
+        log.exception("connectivity_sweeper_failed")
         return 0
+    finally:
+        db.close()
 
 
 def _try_escalation() -> int:
-    """Vritika plugs EscalationTimer.run here."""
-    try:
-        from app.alerts.escalation_timer import EscalationTimer  # type: ignore
-        from app.persistence.pg.session import SessionLocal
+    """EscalationTimer.run, committed (it only flushes) with alert.updated events."""
+    from app.alerts.escalation_timer import EscalationTimer
+    from app.persistence.pg.session import SessionLocal
 
-        db = SessionLocal()
-        try:
-            return int(EscalationTimer(db).run())
-        finally:
-            db.close()
-    except Exception as exc:
-        log.debug("escalation_timer_unavailable: %s", exc)
+    db = SessionLocal()
+    try:
+        count = int(EscalationTimer(db).run())
+        db.commit()
+        return count
+    except Exception:
+        db.rollback()
+        log.exception("escalation_timer_failed")
         return 0
+    finally:
+        db.close()
 
 
 def _run_stuck() -> dict[str, int]:

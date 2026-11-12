@@ -23,6 +23,9 @@ class Classifier(Protocol):
 class MockClassifier:
     """Deterministic classifier for local development and integration tests."""
 
+    model_name = "mock-classifier"
+    model_version = "mock-1"
+
     LABELS = {
         "glass_break": "glass_break",
         "smoke_fire_alarm": "smoke_fire_alarm",

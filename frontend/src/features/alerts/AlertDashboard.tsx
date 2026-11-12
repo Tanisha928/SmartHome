@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getAccessToken, socketUrl } from "../../api/apiClient";
 import { alertsApi } from "./api";
 import { AlertAnalytics } from "./AlertAnalytics";
 import { AlertDetailPanel } from "./AlertDetailPanel";
@@ -22,7 +23,7 @@ export function AlertDashboard({ role, houseId }: Props) {
     catch (error) { setMessage(error instanceof Error ? error.message : "Unable to load alerts."); }
   }, [filters, houseId]);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { const token = sessionStorage.getItem("access_token"); if (!token) return undefined; const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/alerts?house_id=${houseId}`; const socket = new WebSocket(url, ["bearer", token]); socket.onmessage = () => void load(); return () => socket.close(); }, [houseId, load]);
+  useEffect(() => { const token = getAccessToken(); if (!token) return undefined; const socket = new WebSocket(socketUrl("/ws/alerts", { house_id: houseId }), ["bearer", token]); socket.onmessage = (message) => { const type = (JSON.parse(String(message.data)) as { type?: string }).type; if (type === "alert.created" || type === "alert.updated") void load(); }; return () => socket.close(); }, [houseId, load]);
   const visibleConfidence = role === "admin";
   const criticalCount = useMemo(() => alerts.filter((alert) => alert.severity === "critical" && !["resolved", "false_positive"].includes(alert.state)).length, [alerts]);
   const updateFilter = (patch: Partial<AlertFilters>) => setFilters((current) => ({ ...current, ...patch }));

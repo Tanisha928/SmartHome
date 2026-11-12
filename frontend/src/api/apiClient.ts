@@ -8,6 +8,15 @@ export function setAccessToken(token: string | null) { accessToken = token; }
 export function getAccessToken() { return accessToken; }
 export function refreshAccessToken() { return refresh(); }
 
+/** WebSocket URL on the API host (VITE_API_BASE may differ from the page host in dev). */
+export function socketUrl(path: string, params: Record<string, string | number | undefined> = {}): string {
+  const base = API_BASE ? new URL(API_BASE, location.href) : new URL(location.href);
+  const url = new URL(path, base);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  for (const [key, value] of Object.entries(params)) if (value !== undefined) url.searchParams.set(key, String(value));
+  return url.toString();
+}
+
 function correlationId() { return crypto.randomUUID(); }
 
 async function refresh(): Promise<string | null> {
@@ -43,10 +52,12 @@ export const api = {
   signup: (body: { email: string; password: string; full_name: string; phone?: string }) => apiRequest<User>("/api/auth/signup", { method: "POST", body: JSON.stringify(body) }),
   logout: () => apiRequest<void>("/api/auth/logout", { method: "POST" }),
   me: () => apiRequest<User>("/api/users/me"),
+  updateMe: (body: { full_name?: string; phone?: string; email?: string }) => apiRequest<User>("/api/users/me", { method: "PUT", body: JSON.stringify(body) }),
   dashboardSettings: () => apiRequest<DashboardSettings>("/api/users/me/dashboard-settings"),
   saveDashboardSettings: (settings: DashboardSettingsInput) => apiRequest<DashboardSettings>("/api/users/me/dashboard-settings", { method: "PUT", body: JSON.stringify(settings) }),
 };
 
-export type User = { id: number; email: string; full_name?: string; role: "admin" | "owner"; house_ids: number[] };
+// The API sends `name`; `full_name` is kept for demo fixtures.
+export type User = { id: number; email: string; name?: string | null; full_name?: string; phone?: string | null; role: "admin" | "owner"; house_ids: number[] };
 export type DashboardSettings = DashboardSettingsInput & { updated_at: string | null };
 export type DashboardSettingsInput = { default_map_latitude: number | null; default_map_longitude: number | null; show_critical_toasts: boolean; play_alert_sound: boolean };

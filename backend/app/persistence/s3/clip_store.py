@@ -56,8 +56,16 @@ class ClipStore:
         data: bytes,
         content_type: str,
         captured_at: datetime,
+        source_filename: str | None = None,
     ) -> str:
         key = self._key(house_id, event_id, content_type, captured_at)
+        extra: dict[str, Any] = {}
+        if source_filename:
+            # S3 user metadata must be ASCII; keep the device's original name for the
+            # classifier (the key itself is the fixed evt-{id} format).
+            extra["Metadata"] = {
+                "source-filename": source_filename.encode("ascii", "replace").decode()[:200]
+            }
         try:
             self._client.put_object(
                 Bucket=self._settings.s3_bucket,
@@ -65,6 +73,7 @@ class ClipStore:
                 Body=data,
                 ContentType=content_type,
                 ServerSideEncryption="AES256",
+                **extra,
             )
         except (ClientError, BotoCoreError) as exc:
             log.error("s3_put_failed", key=key, error=str(exc))
@@ -84,6 +93,15 @@ class ClipStore:
             )
         except (ClientError, BotoCoreError) as exc:
             raise DependencyUnavailableError("Could not sign clip URL") from exc
+
+    def get_clip(self, key: str) -> tuple[bytes, str | None]:
+        """Clip bytes plus the device's original filename, if ingest recorded one."""
+        try:
+            obj = self._client.get_object(Bucket=self._settings.s3_bucket, Key=key)
+            filename = (obj.get("Metadata") or {}).get("source-filename")
+            return obj["Body"].read(), filename
+        except (ClientError, BotoCoreError) as exc:
+            raise DependencyUnavailableError("Could not fetch clip") from exc
 
     def get_bytes(self, key: str) -> bytes:
         try:

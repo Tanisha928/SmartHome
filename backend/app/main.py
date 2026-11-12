@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -9,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.alerts.api import router as alerts_router
+from app.alerts.event_publisher import deliver
 from app.alerts.ws import router as alerts_ws_router
 from app.auth.api import router as auth_router
 from app.core.config import get_settings
@@ -19,6 +22,7 @@ from app.iot.api import router as iot_router
 from app.persistence.api.admin_data import router as admin_data_router
 from app.persistence.api.houses import router as houses_router
 from app.persistence.api.ingest import router as ingest_router
+from app.persistence.events_bus import is_postgres, listen
 
 log = get_logger(__name__)
 
@@ -33,7 +37,17 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             ensure_indexes()
         except Exception as exc:  # pragma: no cover - mongo may be down in unit tests
             log.warning("mongo_indexes_skipped", error=str(exc))
+
+    # Fan out alert/device events published by any process (worker, sweepers, other API
+    # instances) to this instance's WebSocket clients.
+    listener: asyncio.Task[None] | None = None
+    if settings.env != "test" and is_postgres():
+        listener = asyncio.create_task(listen(deliver))
     yield
+    if listener is not None:
+        listener.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await listener
 
 
 def create_app() -> FastAPI:

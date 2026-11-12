@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { dataOpsApi } from "./api";
 import type { AuditRow } from "./types";
 
@@ -20,6 +20,12 @@ export function AuditLog() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Load on open; the controls narrow or refresh the view.
+  useEffect(() => {
+    void load().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section aria-label="Audit log">

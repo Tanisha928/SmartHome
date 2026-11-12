@@ -63,6 +63,8 @@ class PolicyEngine:
             "device_id": event.device_id,
             "s3_key": result.get("s3_key"),
             "predictions": result.get("predictions", []),
+            "model": result.get("model"),
+            "features": result.get("features"),
             "correlation_id": result.get(
                 "correlation_id", getattr(event, "correlation_id", None)
             ),

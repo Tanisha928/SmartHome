@@ -21,12 +21,20 @@ from edge_agent.simulator import Simulator, write_tone_wav  # noqa: E402
 
 class FakeClipStore:
     objects: dict[str, bytes] = {}
+    names: dict[str, str | None] = {}
 
     def put(
-        self, house_id: int, event_id: int, data: bytes, content_type: str, captured_at: Any
+        self,
+        house_id: int,
+        event_id: int,
+        data: bytes,
+        content_type: str,
+        captured_at: Any,
+        source_filename: str | None = None,
     ) -> str:
         key = f"clips/{house_id}/evt-{event_id}.wav"
         self.objects[key] = data
+        self.names[key] = source_filename
         return key
 
     def delete(self, key: str) -> None:
@@ -46,6 +54,7 @@ def agent(
     iot: IotEnv, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Agent, dict[str, Any]]:
     FakeClipStore.objects = {}
+    FakeClipStore.names = {}
     FakePublisher.messages = []
     monkeypatch.setattr("app.persistence.ingest.service.ClipStore", FakeClipStore)
     monkeypatch.setattr("app.persistence.ingest.service.QueuePublisher", FakePublisher)

@@ -70,6 +70,7 @@ services:
         condition: service_healthy
 
   model-worker:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -89,6 +90,7 @@ services:
       - localstack
 
   sweepers:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile

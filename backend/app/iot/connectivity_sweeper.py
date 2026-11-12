@@ -27,11 +27,12 @@ class ConnectivitySweeper:
         stale_ids = self.devices.stale_online_ids(cutoff)
         changed = self.devices.mark_offline_stale(cutoff)
         expired = self.commands.expire_stale()
-        self.db.commit()
         for device_id in stale_ids:
             device = self.devices.get_raw(device_id)
             if device is not None:
-                publish_device_updated(device)
+                self.db.refresh(device)  # bulk UPDATE bypassed the identity map
+                publish_device_updated(self.db, device)
+        self.db.commit()  # events are delivered on this commit
         if changed or expired:
             log.info("connectivity_sweep", offline=changed, commands_expired=expired)
         return changed

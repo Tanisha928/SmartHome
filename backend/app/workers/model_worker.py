@@ -5,19 +5,22 @@ from __future__ import annotations
 import json
 import logging
 import signal
+import time
 from collections.abc import Callable
 from typing import Any
 
 import boto3
 from botocore.client import BaseClient
+from botocore.exceptions import BotoCoreError, ClientError
 
+from app.alerts.events import bus_publisher
+from app.alerts.live_thresholds import LiveThresholdResolver
 from app.alerts.notification_dispatcher import NotificationDispatcher
 from app.alerts.policy_engine import PolicyEngine
 from app.alerts.recipient_resolver import RecipientResolver
-from app.alerts.threshold_resolver import ThresholdResolver
 from app.core.config import get_settings
 from app.ml.classifier import Classifier, MockClassifier, ModelClassifier, Prediction
-from app.ml.preprocess import prepare_clip
+from app.ml.preprocess import clip_features, prepare_clip
 from app.persistence.pg.session import SessionLocal
 from app.persistence.repositories.alert_repo import AlertRepository
 from app.persistence.repositories.device_repo import DeviceRepository
@@ -25,7 +28,6 @@ from app.persistence.repositories.event_repo import EventRepository
 from app.persistence.repositories.inference_log_repo import InferenceLogRepository
 from app.persistence.repositories.notification_repo import NotificationRepository
 from app.persistence.repositories.prefs_repo import PrefsRepository
-from app.persistence.repositories.threshold_repo import ThresholdRepository
 from app.persistence.repositories.user_repo import UserRepository
 from app.persistence.s3.clip_store import ClipStore
 
@@ -60,6 +62,9 @@ class ModelWorker:
         classifier: Classifier,
         policy_engine: PolicyEngine,
         max_clip_bytes: int = 25 * 1024 * 1024,
+        commit: Callable[[], None] | None = None,
+        rollback: Callable[[], None] | None = None,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.queue = queue
         self.queue_url = queue_url
@@ -67,18 +72,30 @@ class ModelWorker:
         self.classifier = classifier
         self.policy_engine = policy_engine
         self.max_clip_bytes = max_clip_bytes
+        self.commit = commit or (lambda: None)
+        self.rollback = rollback or (lambda: None)
+        self.sleep = sleep
         self.running = True
+        self._receive_failures = 0
 
     def stop(self, *_args: object) -> None:
         self.running = False
 
     def process_message(self, message: dict[str, Any]) -> Any:
         body = json.loads(str(message["Body"]))
-        clip = prepare_clip(
-            self.clip_store.get_bytes(str(body["s3_key"])),
-            max_bytes=self.max_clip_bytes,
-        )
-        predictions = self.classifier.classify(clip, filename=str(body["s3_key"]))
+        key = str(body["s3_key"])
+        source_name: str | None = None
+        get_clip = getattr(self.clip_store, "get_clip", None)
+        if get_clip is not None:
+            raw, source_name = get_clip(key)
+        else:
+            raw = self.clip_store.get_bytes(key)
+        clip = prepare_clip(raw, max_bytes=self.max_clip_bytes)
+        # Ingest stores clips as evt-{id}; the device's original name (kept as S3 metadata)
+        # is what carries the label for the mock classifier.
+        started = time.perf_counter()
+        predictions = self.classifier.classify(clip, filename=source_name or key)
+        runtime_ms = round((time.perf_counter() - started) * 1000, 2)
         result = {
             "event_id": int(body["event_id"]),
             "house_id": int(body["house_id"]),
@@ -86,27 +103,52 @@ class ModelWorker:
             "s3_key": str(body["s3_key"]),
             "correlation_id": body.get("correlation_id"),
             "predictions": [_prediction_dict(prediction) for prediction in predictions],
+            # FR-19: every inference log records the model version and clip features.
+            "model": {
+                "name": getattr(self.classifier, "model_name", type(self.classifier).__name__),
+                "version": getattr(self.classifier, "model_version", "unknown"),
+                "runtime_ms": runtime_ms,
+            },
+            "features": clip_features(clip),
         }
         return self.policy_engine.handle(result)
 
     def run_once(self) -> int:
-        response = self.queue.receive_message(
-            QueueUrl=self.queue_url,
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=20,
-            VisibilityTimeout=120,
-        )
+        try:
+            response = self.queue.receive_message(
+                QueueUrl=self.queue_url,
+                MaxNumberOfMessages=1,
+                WaitTimeSeconds=20,
+                VisibilityTimeout=120,
+            )
+            self._receive_failures = 0
+        except (ClientError, BotoCoreError) as exc:
+            # Queue missing/unreachable (e.g. LocalStack still starting): back off, don't die.
+            self._receive_failures += 1
+            delay = min(30.0, 2.0 ** min(self._receive_failures, 5))
+            log.warning("sqs_receive_failed", extra={"error": str(exc), "retry_in": delay})
+            self.sleep(delay)
+            return 0
         messages = response.get("Messages", [])
         for message in messages:
             try:
                 result = self.process_message(message)
+                # Persist first; delete only once the alert/event state is durable. If the
+                # commit fails the message stays on the queue and is retried (then DLQ).
+                self.commit()
+            except Exception:
+                self.rollback()
+                log.exception("inference_message_failed")
+                continue
+            try:
                 self.queue.delete_message(
                     QueueUrl=self.queue_url,
                     ReceiptHandle=str(message["ReceiptHandle"]),
                 )
-                log.info("inference_message_processed", extra={"result": result})
-            except Exception:
-                log.exception("inference_message_failed")
+            except (ClientError, BotoCoreError):
+                # Redelivery is safe: PolicyEngine returns the stored decision for scored events.
+                log.exception("sqs_delete_failed")
+            log.info("inference_message_processed", extra={"result": result})
         return len(messages)
 
     def run(self, *, on_cycle: Callable[[], None] | None = None) -> None:
@@ -123,7 +165,6 @@ def _build_worker() -> tuple[ModelWorker, Any]:
     alerts = AlertRepository(db)
     users = UserRepository(db)
     prefs = PrefsRepository(db)
-    thresholds = ThresholdRepository(db).as_mappings()
 
     def recipient_provider(alert: Any) -> tuple[list[Any], list[Any]]:
         house_users = users.list_for_house(int(alert.house_id))
@@ -139,13 +180,9 @@ def _build_worker() -> tuple[ModelWorker, Any]:
         device_repository=DeviceRepository(db),
         alert_repository=alerts,
         inference_log_repository=InferenceLogRepository(),
-        threshold_resolver=ThresholdResolver(
-            device_overrides=thresholds["device"],
-            house_overrides=thresholds["house"],
-            global_overrides=thresholds["global"],
-            default=settings.default_threshold,
-        ),
+        threshold_resolver=LiveThresholdResolver(db, default=settings.default_threshold),
         notification_dispatcher=NotificationDispatcher(NotificationRepository(db)),
+        publisher=bus_publisher(db),
         recipient_resolver=RecipientResolver(),
         recipient_provider=recipient_provider,
     )
@@ -169,6 +206,8 @@ def _build_worker() -> tuple[ModelWorker, Any]:
         classifier=classifier,
         policy_engine=engine,
         max_clip_bytes=settings.max_clip_mb * 1024 * 1024,
+        commit=db.commit,
+        rollback=db.rollback,
     )
     return worker, db
 
@@ -178,11 +217,8 @@ def main() -> None:
     signal.signal(signal.SIGTERM, worker.stop)
     signal.signal(signal.SIGINT, worker.stop)
 
-    def finish_cycle() -> None:
-        db.commit()
-
     try:
-        worker.run(on_cycle=finish_cycle)
+        worker.run()
     finally:
         db.close()
 

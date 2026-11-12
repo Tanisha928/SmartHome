@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { alertsApi } from "./api";
 import type { AlertSeverity, NotificationPreference } from "./types";
 
-const categories = ["security", "safety", "comfort", "system"];
+// Must match the backend sound catalog (backend/app/alerts/catalog.py).
+const categories = ["emergency", "safety", "security", "resident", "animal"];
 const initial = (category: string): NotificationPreference => ({ alert_category: category, email: true, sms: false, min_severity: "high" });
 
 export function NotificationPreferences({ houseId }: { houseId: number }) {

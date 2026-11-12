@@ -23,7 +23,9 @@ class RecipientResolver:
             if pref is None:
                 if user.role != "owner" or alert.severity not in {"critical", "high"}:
                     continue
-                channels = ["email", "sms"]
+                channels = ["email"]
+                if getattr(user, "phone", None):  # no phone → no SMS row (was "sent" to nobody)
+                    channels.append("sms")
             else:
                 if SEVERITY_RANK[alert.severity] < SEVERITY_RANK[str(pref.min_severity)]:
                     continue

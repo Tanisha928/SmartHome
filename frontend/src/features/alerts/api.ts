@@ -7,7 +7,7 @@ import type {
   NotificationPreference,
   Threshold,
 } from "./types";
-import { apiRequest } from "../../api/apiClient";
+import { apiRequest, getAccessToken } from "../../api/apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -49,9 +49,10 @@ export const alertsApi = {
   exportUrl: (format: "csv" | "pdf", houseId?: number) =>
     `${API_BASE}/api/alerts/export${query({ format, house_id: houseId })}`,
   downloadExport: async (format: "csv" | "pdf", houseId?: number) => {
-    const token = sessionStorage.getItem("access_token");
+    const token = getAccessToken();
     const response = await fetch(alertsApi.exportUrl(format, houseId), {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: "include",
     });
     if (!response.ok) throw new Error("Unable to download alert export.");
     const blob = await response.blob();

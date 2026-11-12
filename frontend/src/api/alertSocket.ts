@@ -1,4 +1,4 @@
-import { apiRequest } from "./apiClient";
+import { apiRequest, socketUrl } from "./apiClient";
 import type { Alert, AlertPage } from "../features/alerts/types";
 
 export type SocketState = "disconnected" | "connecting" | "catching_up" | "live" | "backoff_polling" | "refreshing_token";
@@ -16,10 +16,11 @@ export class AlertSocket {
   stop() { if (this.timer) window.clearTimeout(this.timer); if (this.pollTimer) window.clearInterval(this.pollTimer); this.socket?.close(); this.socket = null; this.options.onState("disconnected"); }
   private connect() {
     this.options.onState("connecting");
-    const protocol = location.protocol === "https:" ? "wss" : "ws";
-    this.socket = new WebSocket(`${protocol}://${location.host}/ws/alerts`, ["bearer", this.token]);
+    // One house → scope the socket to it; otherwise admins join the all-houses group.
+    const houseId = this.options.houseIds.length === 1 ? this.options.houseIds[0] : undefined;
+    this.socket = new WebSocket(socketUrl("/ws/alerts", { house_id: houseId }), ["bearer", this.token]);
     this.socket.onopen = () => { this.options.onState("catching_up"); void this.catchUp(); };
-    this.socket.onmessage = (message) => { const event = JSON.parse(String(message.data)) as { type: "alert.created" | "alert.updated"; alert: Alert }; if (event.alert) this.lastSeen = event.alert.updated_at ?? event.alert.created_at ?? this.lastSeen; this.options.onMessage(event); this.options.onState("live"); };
+    this.socket.onmessage = (message) => { const event = JSON.parse(String(message.data)) as { type: "alert.created" | "alert.updated"; alert: Alert }; if (event.type !== "alert.created" && event.type !== "alert.updated") return; if (event.alert) this.lastSeen = event.alert.updated_at ?? event.alert.created_at ?? this.lastSeen; this.options.onMessage(event); this.options.onState("live"); };
     this.socket.onclose = () => { if (this.socket) void this.reconnectAfterClose(); };
     this.socket.onerror = () => this.socket?.close();
   }

@@ -84,7 +84,7 @@ class DeviceService:
             api_key_prefix=prefix,
         )
         log.info("device_registered", device_id=device.device_id, house_id=device.house_id)
-        publish_device_updated(device)
+        publish_device_updated(self.db, device)
         return {
             **serialize_device(device, for_admin=claims.role == "admin"),
             "api_key": raw_key,
@@ -147,7 +147,7 @@ class DeviceService:
                 device_id, "enable" if device.status == "enabled" else "disable", claims.user_id
             )
         if updates:
-            publish_device_updated(device)
+            publish_device_updated(self.db, device)
         return serialize_device(device, for_admin=claims.role == "admin")
 
     def remove(self, claims: Claims, device_id: int) -> None:
@@ -202,7 +202,7 @@ class DeviceService:
             log.error("house_cascade_rolled_back", house_id=house_id, target=status)
             raise
         for device in changed:
-            publish_device_updated(device)
+            publish_device_updated(self.db, device)
         return {
             "house_id": house_id,
             "status": status,
