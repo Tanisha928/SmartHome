@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { devicesApi, errorText, listAllDevices } from "./api";
+import { applyDeviceUpdate, useDeviceEvents } from "./live";
 import { deviceHealth, fleetStats, heartbeatAge, houseLabel, type DeviceHealth } from "./logic";
 import type { Device, House } from "./types";
 import { button, card, colors, HealthBadge, input, Notice } from "./ui";
@@ -33,6 +34,8 @@ export function FleetView() {
     const t = setInterval(() => void load(), REFRESH_MS);
     return () => clearInterval(t);
   }, [load]);
+
+  useDeviceEvents(undefined, (update) => setDevices((all) => applyDeviceUpdate(all, update)));
 
   const scoped = houseId ? devices.filter((d) => String(d.house_id) === houseId) : devices;
   const stats = fleetStats(scoped);

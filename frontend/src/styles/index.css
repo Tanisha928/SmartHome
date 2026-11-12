@@ -57,3 +57,5 @@ input, select { width: 100%; border: 1px solid #d3dce9; border-radius: 6px; padd
 .owner-device-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .7rem; }.owner-device-tile { display: flex; align-items: center; gap: .7rem; padding: .9rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #fbfdff; }.owner-device-tile small { display: block; color: #718096; margin-top: .2rem; }.activity-card { margin-top: 1rem; }
 .leaflet-map { min-height: 390px; width: 100%; border-radius: 10px; overflow: hidden; }
 @media (max-width: 600px) { .app-nav { align-items: flex-start; flex-wrap: wrap; }.nav-links { order: 3; flex-basis: 100%; }.metric-strip, .live-layout, .settings-grid, .two-col, .category-tiles, .filter-rail { grid-template-columns: 1fr; }.history-toolbar, .owner-alert-card { align-items: stretch; flex-direction: column; } }
+.app-subnav { display: flex; gap: 1.25rem; padding: .5rem 3vw; background: #e8eef7; border-bottom: 1px solid #cbd5e1; flex-wrap: wrap; }
+.app-subnav a { color: #0f1d35; }

@@ -92,7 +92,7 @@ class HeartbeatService:
         if first_call or config_version != device.config_version:
             response["config"] = device_config(device)
         if not was_online:
-            publish_device_updated(device)
+            publish_device_updated(self.devices.db, device)
         return response
 
     def ack(self, claims: Claims, device_id: int, command_id: int, result: str) -> dict[str, Any]:
@@ -104,5 +104,5 @@ class HeartbeatService:
         cmd = self.commands.ack(device_id, command_id, result)
         device = self.devices.get_raw(device_id)
         if device is not None:
-            publish_device_updated(device)
+            publish_device_updated(self.devices.db, device)
         return {"command_id": cmd.command_id, "status": cmd.status}

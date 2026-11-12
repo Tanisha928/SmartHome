@@ -1,25 +1,24 @@
-/** Data ops API helpers — uses shared apiClient once Mithil lands it. */
+/** Data ops API helpers — JSON goes through the shared apiClient (auth, refresh, errors). */
+
+import { apiRequest, getAccessToken, refreshAccessToken } from "../../api/apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set("X-Correlation-Id", crypto.randomUUID());
-  const token = sessionStorage.getItem("access_token");
+async function fetchCsv(path: string, retried = false): Promise<string> {
+  const headers = new Headers({ "X-Correlation-Id": crypto.randomUUID() });
+  const token = getAccessToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const resp = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const resp = await fetch(`${API_BASE}${path}`, { headers, credentials: "include" });
+  if (resp.status === 401 && !retried && (await refreshAccessToken())) return fetchCsv(path, true);
   if (!resp.ok) {
     const body = await resp.json().catch(() => ({}));
-    throw Object.assign(new Error(body.message ?? resp.statusText), {
-      status: resp.status,
-      error: body.error,
-      details: body.details,
-    });
+    throw { status: resp.status, error: body.error, message: body.message ?? resp.statusText, details: body.details };
   }
-  if (resp.headers.get("content-type")?.includes("text/csv")) {
-    return (await resp.text()) as T;
-  }
-  return resp.json() as Promise<T>;
+  return resp.text();
+}
+
+function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return apiRequest<T>(path, init);
 }
 
 export const dataOpsApi = {
@@ -43,7 +42,7 @@ export const dataOpsApi = {
     ),
   auditCsv: (params: URLSearchParams) => {
     params.set("export", "csv");
-    return request<string>(`/api/admin/audit?${params}`);
+    return fetchCsv(`/api/admin/audit?${params}`);
   },
   getRetention: () => request<import("./types").RetentionPolicy>("/api/admin/retention"),
   putRetention: (body: Partial<import("./types").RetentionPolicy>) =>

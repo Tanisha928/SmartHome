@@ -23,7 +23,13 @@ class FakeClipStore:
         self.deleted: list[str] = []
 
     def put(
-        self, house_id: int, event_id: int, data: bytes, content_type: str, captured_at: datetime
+        self,
+        house_id: int,
+        event_id: int,
+        data: bytes,
+        content_type: str,
+        captured_at: datetime,
+        source_filename: str | None = None,
     ) -> str:
         if self.fail:
             raise DependencyUnavailableError(

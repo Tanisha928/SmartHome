@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { dataOpsApi } from "./api";
 import type { PipelineEvent } from "./types";
 
@@ -14,6 +14,12 @@ export function EventPipeline() {
     const data = await dataOpsApi.events(params);
     setItems(data.items);
   };
+
+  // Load on open; the controls narrow or refresh the view.
+  useEffect(() => {
+    void load().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const retry = async (eventId: number) => {
     try {

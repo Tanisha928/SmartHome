@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { devicesApi, errorText } from "./api";
+import { applyDeviceUpdate, useDeviceEvents } from "./live";
 import { deviceHealth, heartbeatAge, ROOM_TYPE_LABELS, signalLabel } from "./logic";
 import type { Device, Room, RoomType } from "./types";
 import { ApiKeyModal, button, card, Field, HealthBadge, input, Notice, primaryButton } from "./ui";
@@ -36,6 +37,8 @@ export function MyDevices({ houseId }: { houseId: number }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useDeviceEvents(houseId, (update) => setDevices((all) => applyDeviceUpdate(all, update)));
 
   const addRoom = async (e: FormEvent) => {
     e.preventDefault();

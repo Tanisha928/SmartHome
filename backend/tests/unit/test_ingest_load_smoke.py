@@ -17,7 +17,7 @@ class FakeClipStore:
     def __init__(self) -> None:
         self.count = 0
 
-    def put(self, house_id, event_id, data, content_type, captured_at):  # type: ignore[no-untyped-def]
+    def put(self, house_id, event_id, data, content_type, captured_at, source_filename=None):  # type: ignore[no-untyped-def]
         self.count += 1
         return f"clips/{house_id}/evt-{event_id}.wav"
 

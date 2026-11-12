@@ -73,7 +73,9 @@ class NotificationDispatcher:
         if settings.aws_endpoint_url:
             client_kwargs["endpoint_url"] = settings.aws_endpoint_url
         client = create_sns_client(client_kwargs)
-        if row.channel == "sms" and getattr(row, "recipient_label", None):
+        if row.channel == "sms":
+            if not getattr(row, "recipient_label", None):
+                raise ValueError("SMS recipient has no phone number")
             client.publish(PhoneNumber=row.recipient_label, Message=self._message(alert))
         else:
             topic = client.create_topic(Name=f"{settings.sns_topic_prefix}{int(alert.house_id)}")

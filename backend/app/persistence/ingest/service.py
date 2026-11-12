@@ -100,7 +100,9 @@ class IngestService:
 
         event_id = self.events.allocate_id()
         try:
-            s3_key = self.clips.put(house_id, event_id, clip_bytes, content_type, captured_at)
+            s3_key = self.clips.put(
+                house_id, event_id, clip_bytes, content_type, captured_at, source_filename=filename
+            )
         except Exception:
             raise
 

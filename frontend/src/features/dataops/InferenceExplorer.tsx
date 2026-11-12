@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { dataOpsApi } from "./api";
 import type { InferenceLog } from "./types";
 
@@ -14,6 +14,12 @@ export function InferenceExplorer() {
     const data = await dataOpsApi.inferenceLogs(params);
     setItems(data.items);
   };
+
+  // Load on open; the controls narrow or refresh the view.
+  useEffect(() => {
+    void search().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section aria-label="Inference explorer">

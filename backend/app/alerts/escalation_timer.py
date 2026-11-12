@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.alerts.alert_state_service import AlertStateService
+from app.alerts.events import publish_alert
 from app.alerts.notification_dispatcher import NotificationDispatcher
 from app.core.config import get_settings
 from app.persistence.repositories.alert_repo import AlertRepository
@@ -40,5 +41,6 @@ class EscalationTimer:
                 note="auto-escalated",
             )
             self.notifications.resend_failed(updated)
+            publish_alert(self.db, "alert.updated", updated)
             count += 1
         return count

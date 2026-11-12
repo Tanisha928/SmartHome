@@ -197,3 +197,57 @@ describe("errorText", () => {
     expect(errorText(err)).toBe("That serial number is already registered. (ref c-1)");
   });
 });
+
+describe("integration with the shared auth + socket", () => {
+  afterEach(async () => {
+    const { setAccessToken } = await import("../../api/apiClient");
+    setAccessToken(null);
+  });
+
+  it("sends the in-memory login token (regression: 401 Missing bearer token)", async () => {
+    const { setAccessToken } = await import("../../api/apiClient");
+    setAccessToken("tok-123");
+    const seen: Array<string | null> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        seen.push(new Headers(init?.headers).get("Authorization"));
+        return respond(200, { items: houses, total: 1, page: 1, page_size: 100 });
+      }),
+    );
+    const { devicesApi } = await import("./api");
+    await devicesApi.listHouses();
+    expect(seen).toEqual(["Bearer tok-123"]);
+  });
+
+  it("applies a pushed device.updated without reloading", async () => {
+    const { setAccessToken } = await import("../../api/apiClient");
+    setAccessToken("tok-123");
+    const sockets: Array<{ url: string; protocols: string[]; onmessage?: (m: { data: string }) => void; close: () => void }> = [];
+    class FakeSocket {
+      onmessage?: (m: { data: string }) => void;
+      onopen?: () => void;
+      onclose?: () => void;
+      constructor(public url: string, public protocols: string[]) {
+        sockets.push(this);
+      }
+      close() {}
+    }
+    vi.stubGlobal("WebSocket", FakeSocket);
+    mockFetch();
+    render(<MyDevices houseId={3} />);
+    const sw = await screen.findByRole("switch", { name: /Kitchen sensor/ });
+    expect(sw.getAttribute("aria-checked")).toBe("true");
+    expect(sockets[0].url).toContain("/ws/alerts?house_id=3");
+    expect(sockets[0].protocols).toEqual(["bearer", "tok-123"]);
+    const fetchesBefore = calls.length;
+
+    await act(async () => {
+      sockets[0].onmessage?.({
+        data: JSON.stringify({ type: "device.updated", house_id: 3, device: { device_id: 501, status: "disabled" } }),
+      });
+    });
+    expect(sw.getAttribute("aria-checked")).toBe("false");
+    expect(calls.length).toBe(fetchesBefore);
+  });
+});

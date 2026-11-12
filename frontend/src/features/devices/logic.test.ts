@@ -114,3 +114,19 @@ describe("formatting", () => {
     expect(signalLabel(null)).toBe("Unknown");
   });
 });
+
+describe("applyDeviceUpdate", () => {
+  it("merges a pushed update into the matching device only", async () => {
+    const { applyDeviceUpdate } = await import("./live");
+    const list = [device(1, 1, 1), device(2, 1, 1)];
+    const next = applyDeviceUpdate(list, { device_id: 2, status: "disabled", conn_state: "offline" });
+    expect(next[1]).toMatchObject({ device_id: 2, status: "disabled", conn_state: "offline", serial_no: "SN-2" });
+    expect(next[0]).toBe(list[0]);
+  });
+
+  it("returns the same list for unknown devices", async () => {
+    const { applyDeviceUpdate } = await import("./live");
+    const list = [device(1, 1, 1)];
+    expect(applyDeviceUpdate(list, { device_id: 99, status: "disabled" })).toBe(list);
+  });
+});

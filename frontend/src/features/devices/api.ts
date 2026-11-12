@@ -1,5 +1,7 @@
-/** Device-manager API helpers. Swap `request` for Mithil's shared apiClient once it lands. */
+/** Device-manager API helpers, on the shared apiClient (in-memory token, one coordinated
+ *  refresh on 401, normalized errors). */
 
+import { apiRequest } from "../../api/apiClient";
 import type {
   ApiError,
   Device,
@@ -16,26 +18,8 @@ import type {
   RoomType,
 } from "./types";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
-
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set("X-Correlation-Id", crypto.randomUUID());
-  if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const token = sessionStorage.getItem("access_token");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  const resp = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    const err = new Error(body.message ?? resp.statusText) as ApiError;
-    err.status = resp.status;
-    err.error = body.error;
-    err.details = body.details;
-    err.correlationId = resp.headers.get("X-Correlation-Id");
-    throw err;
-  }
-  if (resp.status === 204) return undefined as T;
-  return resp.json() as Promise<T>;
+export function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return apiRequest<T>(path, init);
 }
 
 const json = (method: string, body: unknown): RequestInit => ({

@@ -11,9 +11,10 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.alerts.alert_state_service import AlertStateService
+from app.alerts.events import bus_publisher, publish_alert, serialize_alert
+from app.alerts.live_thresholds import LiveThresholdResolver
 from app.alerts.notification_dispatcher import NotificationDispatcher
 from app.alerts.policy_engine import PolicyEngine
-from app.alerts.threshold_resolver import ThresholdResolver
 from app.core.config import get_settings
 from app.core.deps import Claims, get_db, require_user
 from app.core.errors import DependencyUnavailableError, ForbiddenError, UnprocessableError
@@ -48,7 +49,7 @@ class AlertStateUpdate(BaseModel):
 
 
 class NotificationPreferenceUpdate(BaseModel):
-    alert_category: str
+    alert_category: Literal["emergency", "safety", "security", "resident", "animal"]
     email: bool = True
     sms: bool = False
     min_severity: Literal["critical", "high", "medium", "low"] = "high"
@@ -77,24 +78,7 @@ def _iso(value: datetime | None) -> str | None:
 
 
 def _serialize_alert(alert: Any, *, owner_view: bool) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "alert_id": alert.alert_id,
-        "event_id": alert.event_id,
-        "house_id": alert.house_id,
-        "room_id": alert.room_id,
-        "device_id": alert.device_id,
-        "alert_category": alert.alert_category,
-        "sound_type": alert.sound_type,
-        "severity": alert.severity,
-        "state": alert.state,
-        "suppressed_count": alert.suppressed_count,
-        "version": alert.version,
-        "created_at": _iso(alert.created_at),
-        "updated_at": _iso(alert.updated_at),
-    }
-    if not owner_view:
-        payload["confidence"] = float(alert.confidence) if alert.confidence is not None else None
-    return payload
+    return serialize_alert(alert, owner_view=owner_view)
 
 
 def _owner_view(claims: Claims) -> bool:
@@ -370,18 +354,13 @@ def internal_inference_result(
     settings = get_settings()
     if not settings.internal_api_enabled or x_internal_key != settings.internal_api_key:
         raise ForbiddenError("Internal API key required")
-    overrides = ThresholdRepository(db).as_mappings()
     engine = PolicyEngine(
         event_repository=EventRepository(db),
         device_repository=DeviceRepository(db),
         alert_repository=AlertRepository(db),
         inference_log_repository=InferenceLogRepository(),
-        threshold_resolver=ThresholdResolver(
-            device_overrides=overrides["device"],
-            house_overrides=overrides["house"],
-            global_overrides=overrides["global"],
-            default=settings.default_threshold,
-        ),
+        threshold_resolver=LiveThresholdResolver(db, default=settings.default_threshold),
+        publisher=bus_publisher(db),
     )
     result = engine.handle(body.model_dump())
     return {"event_id": result.event_id, "decision": result.decision, "alert_id": result.alert_id}
@@ -414,6 +393,7 @@ def update_alert_state(
         actor=claims.user_id,
         note=body.note,
     )
+    publish_alert(db, "alert.updated", updated)
     return _serialize_alert(updated, owner_view=_owner_view(claims))
 
 
@@ -427,6 +407,14 @@ def resend_alert_notifications(
         from app.core.errors import ForbiddenError
 
         raise ForbiddenError("Admin role required")
-    alert = AlertRepository(db).get_detail(alert_id, claims)
+    repository = AlertRepository(db)
+    alert = repository.get_detail(alert_id, claims)
     accepted = NotificationDispatcher(NotificationRepository(db)).resend_failed(alert)
+    if accepted and alert.state == "new":
+        # PLAN 8.1 step 10: an alert whose deliveries all failed stays `new`; a successful
+        # resend completes the new → notified step the original dispatch could not.
+        alert = repository.transition(
+            alert_id, "new", "notified", None, "notifications accepted on resend"
+        )
+    publish_alert(db, "alert.updated", alert)
     return {"alert_id": alert_id, "accepted": accepted}
