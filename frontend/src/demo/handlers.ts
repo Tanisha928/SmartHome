@@ -5,15 +5,34 @@ const demoSettings = { default_map_latitude: 47.6062, default_map_longitude: -12
 const demoPreferences = [{ alert_category: "safety", email: true, sms: true, min_severity: "high" }];
 const demoThresholds = [{ id: 1, scope: "global", scope_id: null, sound_type: "fall", threshold: 0.8 }];
 let demoCurrentAlert = { ...demoAlerts[0] };
-const demoDetail = () => ({ ...demoCurrentAlert, history: [{ history_id: 1, from_state: null, to_state: "new", actor_user_id: null, note: null, changed_at: demoCurrentAlert.created_at }, ...(demoCurrentAlert.state !== "new" ? [{ history_id: 2, from_state: "new", to_state: demoCurrentAlert.state, actor_user_id: 1, note: "Demo acceptance flow", changed_at: demoCurrentAlert.updated_at }] : [])], deliveries: [{ notification_id: 1, recipient_id: 2, recipient_label: "Demo Owner", channel: "email", status: "sent", attempts: 1, last_error: null, sent_at: demoCurrentAlert.created_at }] });
+let demoUser: { id: number; email: string; full_name: string; role: "admin" | "owner"; house_ids: number[] } = { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] };
+const simulatedAlerts = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem("smarthome:demo-alerts") ?? "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+};
+const saveSimulatedAlerts = (items: typeof demoAlerts) => localStorage.setItem("smarthome:demo-alerts", JSON.stringify(items));
+const allDemoAlerts = () => {
+  const simulated = simulatedAlerts();
+  return [demoCurrentAlert, ...demoAlerts.filter((item) => item.alert_id !== demoCurrentAlert.alert_id && !simulated.some((alert) => alert.alert_id === item.alert_id)), ...simulated];
+};
 export const handlers = [
-  http.post("*/api/auth/login", async ({ request }) => { const body = await request.json() as { email?: string }; const owner = body.email?.includes("owner"); return HttpResponse.json({ access_token: "demo-token", user: { id: owner ? 2 : 1, email: body.email, full_name: owner ? "Demo Owner" : "Demo Admin", role: owner ? "owner" : "admin", house_ids: [1] } }); }),
+  http.post("*/api/auth/login", async ({ request }) => {
+    const body = await request.json() as { email?: string };
+    const email = body.email?.trim().toLowerCase() ?? "";
+    const admin = email === "admin@example.com" || email === "admin@smarthome.local" || email.startsWith("admin@");
+    demoUser = { id: admin ? 1 : 2, email: body.email ?? "", full_name: admin ? "Demo Admin" : "Demo Owner", role: admin ? "admin" : "owner", house_ids: [1] };
+    return HttpResponse.json({ access_token: "demo-token", user: demoUser });
+  }),
   http.post("*/api/auth/signup", () => HttpResponse.json({ id: 2, email: "owner@example.com", full_name: "Demo Owner", role: "owner", house_ids: [] }, { status: 201 })),
   http.post("*/api/auth/refresh", () => HttpResponse.json({ access_token: "demo-token" })),
   http.post("*/api/auth/logout", () => new HttpResponse(null, { status: 204 })),
-  http.get("*/api/users/me", () => HttpResponse.json({ id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] })),
-  http.get("*/api/alerts", () => HttpResponse.json({ ...demoPage, items: [demoCurrentAlert, ...demoPage.items.filter((item) => item.alert_id !== demoCurrentAlert.alert_id)] })),
-  http.get("*/api/alerts/:id", () => HttpResponse.json(demoDetail())),
+  http.get("*/api/users/me", () => HttpResponse.json(demoUser)),
+  http.get("*/api/alerts", () => { const items = allDemoAlerts(); return HttpResponse.json({ ...demoPage, items, total: items.length }); }),
+  http.get("*/api/alerts/:id", ({ params }) => { const alert = allDemoAlerts().find((item) => item.alert_id === Number(params.id)); return HttpResponse.json(alert ? { ...alert, history: [], deliveries: [] } : { error: "not_found", message: "Alert not found" }, { status: alert ? 200 : 404 }); }),
   http.post("*/api/alerts/:id/resend", () => HttpResponse.json({ accepted: true })),
   http.get("*/api/alerts/export", ({ request }) => new HttpResponse(request.url.includes("format=pdf") ? new Uint8Array([37, 80, 68, 70]) : "alert_id,sound_type\n101,fall\n", { headers: { "Content-Type": request.url.includes("format=pdf") ? "application/pdf" : "text/csv" } })),
   http.get("*/api/stats/alerts", () => HttpResponse.json(demoStats)),
@@ -47,5 +66,5 @@ export const handlers = [
   http.put("*/api/notification-prefs", async ({ request }) => HttpResponse.json({ house_id: 1, items: await request.json() })),
   http.get("*/api/admin/thresholds", () => HttpResponse.json({ items: demoThresholds })),
   http.put("*/api/admin/thresholds", async ({ request }) => HttpResponse.json(await request.json())),
-  http.patch("*/api/alerts/:id/state", async ({ request }) => { if (request.headers.get("x-demo-conflict") === "true") return HttpResponse.json({ error: "state_conflict", message: "State changed", details: { current_state: "acknowledged", last_actor: "another-admin@example.com" } }, { status: 409 }); const body = await request.json() as { to_state?: string; note?: string }; demoCurrentAlert = { ...demoCurrentAlert, state: (body.to_state ?? demoCurrentAlert.state) as typeof demoCurrentAlert.state, version: demoCurrentAlert.version + 1, updated_at: new Date().toISOString() }; return HttpResponse.json(demoCurrentAlert); }),
+  http.patch("*/api/alerts/:id/state", async ({ params, request }) => { if (request.headers.get("x-demo-conflict") === "true") return HttpResponse.json({ error: "state_conflict", message: "State changed", details: { current_state: "acknowledged", last_actor: "another-admin@example.com" } }, { status: 409 }); const body = await request.json() as { to_state?: string }; const id = Number(params.id); const existing = allDemoAlerts().find((item) => item.alert_id === id); if (!existing) return HttpResponse.json({ error: "not_found", message: "Alert not found" }, { status: 404 }); const updated = { ...existing, state: (body.to_state ?? existing.state) as typeof existing.state, version: existing.version + 1, updated_at: new Date().toISOString() }; if (id === demoCurrentAlert.alert_id) demoCurrentAlert = updated; else saveSimulatedAlerts(simulatedAlerts().map((item) => item.alert_id === id ? updated : item)); return HttpResponse.json(updated); }),
 ];
