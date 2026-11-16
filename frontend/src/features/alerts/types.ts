@@ -43,6 +43,8 @@ export type AlertDelivery = {
 export type AlertDetail = Alert & { history: AlertHistory[]; deliveries: AlertDelivery[] };
 export type AlertPage = { items: Alert[]; total: number; page: number; page_size: number };
 export type AlertFilters = {
+  page?: number;
+  page_size?: number;
   house_id?: number;
   severity?: AlertSeverity;
   state?: AlertState;

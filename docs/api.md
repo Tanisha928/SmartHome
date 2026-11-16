@@ -1,6 +1,6 @@
-# Smart Home Platform API (stub)
+# Smart Home Platform API
 
-Authoritative contract is served at runtime from FastAPI (`/openapi.json`) and mirrored in `docs/openapi.json`.
+The authoritative contract is served at runtime from FastAPI (`/openapi.json`) and mirrored in [`docs/openapi.json`](openapi.json). The generated frontend types are in `frontend/src/api/generated.ts`; regenerate them with `npm run generate:api` after changing the contract.
 
 ## Auth
 
@@ -12,6 +12,7 @@ Authoritative contract is served at runtime from FastAPI (`/openapi.json`) and m
 | POST | `/api/auth/logout` | Clears cookie |
 | GET/PUT | `/api/users/me` | Profile |
 | GET/PUT | `/api/users/me/saved-views` | Admin saved filters |
+| GET/PUT | `/api/users/me/dashboard-settings` | Per-user map and notification defaults |
 
 ## Houses / ingest / data ops (Tanisha)
 
@@ -47,4 +48,23 @@ responses may include confidence; owner, family, and caregiver responses do not.
 | POST | `/internal/inference-results` | Internal-key protected policy adapter |
 | WebSocket | `/ws/alerts?house_id={id}` | JWT bearer subprotocol with house isolation |
 
+## IoT devices
+
+| Method | Path | Notes |
+|---|---|---|
+| GET/POST | `/api/rooms` | Scoped room inventory and creation |
+| PATCH | `/api/rooms/{id}` | Update a room label or type |
+| GET/POST | `/api/devices` | Inventory and one-time API-key registration |
+| PATCH/DELETE | `/api/devices/{id}` | Update, disable, or soft-remove a device |
+| POST | `/api/devices/{id}/rotate-key` | Revoke the old key and return a new one once |
+| POST | `/api/devices/{id}/heartbeat` | Device JWT heartbeat, telemetry, commands, and config |
+| POST | `/api/devices/{id}/command` | Queue a device command with conflict protection |
+| POST | `/api/houses/{id}/disable` | Transactional house/device disable cascade |
+| POST | `/api/houses/{id}/enable` | Re-enable a house and its devices |
+| POST | `/api/auth/device-token` | Short-lived device JWT bound to device and house |
+
 IoT, alerts, and WebSocket routes are owned by Sakshat and Vritika — see PLAN.md sections 6–8.
+
+## Backup and retention behavior
+
+`RetentionJob` applies the S3 lifecycle policy, ensures Mongo TTL indexes, checks the latest automated RDS snapshot, and runs `mongodump --archive --gzip` before uploading the archive under the configured S3 backup prefix. A missing `RDS_INSTANCE_IDENTIFIER`, disabled Mongo dump, missing `mongodump`, or failed AWS operation is recorded as `not_configured`, `disabled`, or `failed`; it is never reported as a successful backup.

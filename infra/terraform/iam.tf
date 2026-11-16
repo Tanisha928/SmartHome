@@ -78,6 +78,16 @@ data "aws_iam_policy_document" "api" {
     resources = ["arn:aws:s3:::${local.clips_bucket}"]
   }
   statement {
+    sid       = "Backups"
+    actions   = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${local.clips_bucket}/backups/*"]
+  }
+  statement {
+    sid       = "RdsSnapshotStatus"
+    actions   = ["rds:DescribeDBSnapshots"]
+    resources = ["*"]
+  }
+  statement {
     sid       = "Queue"
     actions   = ["sqs:SendMessage", "sqs:GetQueueAttributes", "sqs:GetQueueUrl"]
     resources = [local.queue_arn, local.dlq_arn]

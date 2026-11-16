@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import subprocess
 from datetime import UTC, datetime
 from typing import Any
 
@@ -54,6 +56,16 @@ class RetentionJob:
             kwargs["endpoint_url"] = self.settings.aws_endpoint_url
         return boto3.client("s3", **kwargs)
 
+    def _rds(self):  # type: ignore[no-untyped-def]
+        kwargs: dict[str, Any] = {
+            "region_name": self.settings.aws_region,
+            "aws_access_key_id": self.settings.aws_access_key_id,
+            "aws_secret_access_key": self.settings.aws_secret_access_key,
+        }
+        if self.settings.aws_endpoint_url:
+            kwargs["endpoint_url"] = self.settings.aws_endpoint_url
+        return boto3.client("rds", **kwargs)
+
     def _apply_s3_lifecycle(self, expire_days: int, ia_days: int | None) -> bool:
         rules: list[dict[str, Any]] = [
             {
@@ -77,21 +89,7 @@ class RetentionJob:
 
     def _record_backup_status(self) -> list[dict[str, Any]]:
         now = datetime.now(UTC)
-        # Dev: mock RDS snapshot check; record weekly mongo dump location
-        rows = [
-            BackupStatus(
-                kind="rds_snapshot",
-                taken_at=now,
-                status="ok" if self.settings.env == "dev" else "checked",
-                location="mock://rds-snapshot",
-            ),
-            BackupStatus(
-                kind="mongo_dump",
-                taken_at=now,
-                status="ok",
-                location=f"s3://{self.settings.s3_bucket}/backups/mongo/{now.date().isoformat()}.archive",
-            ),
-        ]
+        rows = [self._check_rds_snapshot(now), self._dump_mongo(now)]
         for row in rows:
             self.db.add(row)
         self.db.flush()
@@ -104,3 +102,62 @@ class RetentionJob:
             }
             for r in rows
         ]
+
+    def _check_rds_snapshot(self, now: datetime) -> BackupStatus:
+        identifier = self.settings.rds_instance_identifier
+        if not identifier:
+            return BackupStatus(kind="rds_snapshot", taken_at=now, status="not_configured")
+        try:
+            snapshots = self._rds().describe_db_snapshots(
+                DBInstanceIdentifier=identifier,
+                SnapshotType="automated",
+            ).get("DBSnapshots", [])
+            latest = (
+                max(snapshots, key=lambda item: item.get("SnapshotCreateTime", now))
+                if snapshots
+                else None
+            )
+            if latest is None:
+                return BackupStatus(kind="rds_snapshot", taken_at=now, status="missing")
+            created = latest.get("SnapshotCreateTime", now)
+            return BackupStatus(
+                kind="rds_snapshot",
+                taken_at=created,
+                status="ok",
+                location=latest.get("DBSnapshotArn"),
+            )
+        except (ClientError, BotoCoreError) as exc:
+            log.warning("rds_snapshot_check_failed", error=str(exc))
+            return BackupStatus(
+                kind="rds_snapshot", taken_at=now, status="failed", location=str(exc)
+            )
+
+    def _dump_mongo(self, now: datetime) -> BackupStatus:
+        if not self.settings.mongo_dump_enabled:
+            return BackupStatus(kind="mongo_dump", taken_at=now, status="disabled")
+        key = f"{self.settings.s3_backup_prefix.rstrip('/')}/{now.date().isoformat()}.archive.gz"
+        try:
+            result = subprocess.run(
+                [
+                    "mongodump",
+                    "--uri",
+                    self.settings.mongo_url,
+                    "--db",
+                    self.settings.mongo_db,
+                    "--archive=-",
+                    "--gzip",
+                ],
+                check=True,
+                capture_output=True,
+                timeout=900,
+            )
+            self._s3().upload_fileobj(io.BytesIO(result.stdout), self.settings.s3_bucket, key)
+            return BackupStatus(
+                kind="mongo_dump",
+                taken_at=now,
+                status="ok",
+                location=f"s3://{self.settings.s3_bucket}/{key}",
+            )
+        except (OSError, subprocess.SubprocessError, ClientError, BotoCoreError) as exc:
+            log.warning("mongo_dump_failed", error=str(exc))
+            return BackupStatus(kind="mongo_dump", taken_at=now, status="failed", location=str(exc))

@@ -4,6 +4,8 @@ import { demoAlerts, demoPage, demoStats } from "./fixtures";
 const demoSettings = { default_map_latitude: 47.6062, default_map_longitude: -122.3321, show_critical_toasts: true, play_alert_sound: true, updated_at: new Date().toISOString() };
 const demoPreferences = [{ alert_category: "safety", email: true, sms: true, min_severity: "high" }];
 const demoThresholds = [{ id: 1, scope: "global", scope_id: null, sound_type: "fall", threshold: 0.8 }];
+let demoSavedViews: Array<Record<string, unknown>> = [];
+let demoPipelineEvent = { event_id: 1, house_id: 1, device_id: 7, processing_state: "failed", retry_count: 1, captured_at: new Date().toISOString(), correlation_id: "demo-event-1" };
 let demoCurrentAlert = { ...demoAlerts[0] };
 let demoUser: { id: number; email: string; full_name: string; role: "admin" | "owner"; house_ids: number[] } = { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] };
 const simulatedAlerts = () => {
@@ -53,15 +55,15 @@ export const handlers = [
   http.post("*/api/houses/:id/enable", () => HttpResponse.json({ house_id: 1, status: "active", devices_updated: 1 })),
   http.get("*/api/admin/audit", () => HttpResponse.json({ items: [] })),
   http.get("*/api/admin/data/health", () => HttpResponse.json({ queue_depth: 0, dlq_depth: 0, event_counts: {}, inference_latency_ms: 0, last_backup_at: null })),
-  http.get("*/api/admin/events", () => HttpResponse.json({ items: [], total: 0 })),
-  http.post("*/api/admin/events/:id/retry", () => HttpResponse.json({ event_id: 1, processing_state: "queued" })),
+  http.get("*/api/admin/events", () => HttpResponse.json({ items: [demoPipelineEvent], total: 1 })),
+  http.post("*/api/admin/events/:id/retry", () => { demoPipelineEvent = { ...demoPipelineEvent, processing_state: "queued", retry_count: demoPipelineEvent.retry_count + 1 }; return HttpResponse.json({ event_id: demoPipelineEvent.event_id, processing_state: demoPipelineEvent.processing_state }); }),
   http.get("*/api/admin/inference-logs", () => HttpResponse.json({ items: [], total: 0 })),
   http.get("*/api/admin/retention", () => HttpResponse.json({ clip_expire_days: 30, clip_ia_transition_days: null, telemetry_ttl_days: 30 })),
   http.put("*/api/admin/retention", async ({ request }) => HttpResponse.json(await request.json())),
   http.get("*/api/users/me/dashboard-settings", () => HttpResponse.json(demoSettings)),
   http.put("*/api/users/me/dashboard-settings", async ({ request }) => Object.assign(demoSettings, await request.json(), { updated_at: new Date().toISOString() }) && HttpResponse.json(demoSettings)),
-  http.get("*/api/users/me/saved-views", () => HttpResponse.json({ views: [] })),
-  http.put("*/api/users/me/saved-views", () => HttpResponse.json({ views: [] })),
+  http.get("*/api/users/me/saved-views", () => HttpResponse.json({ views: demoSavedViews })),
+  http.put("*/api/users/me/saved-views", async ({ request }) => { const body = await request.json() as { views?: Array<Record<string, unknown>> }; demoSavedViews = body.views ?? []; return HttpResponse.json({ views: demoSavedViews }); }),
   http.get("*/api/notification-prefs", () => HttpResponse.json({ house_id: 1, items: demoPreferences })),
   http.put("*/api/notification-prefs", async ({ request }) => HttpResponse.json({ house_id: 1, items: await request.json() })),
   http.get("*/api/admin/thresholds", () => HttpResponse.json({ items: demoThresholds })),
