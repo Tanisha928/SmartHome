@@ -3,12 +3,12 @@
 # SPA traffic get their own health/latency metrics and deregistration behaviour.
 
 resource "aws_lb" "main" {
-  name               = local.name
-  load_balancer_type = "application"
-  internal           = false
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public[*].id
-  idle_timeout       = 120 # long-lived WebSockets + 25 MB clip uploads
+  name                       = local.name
+  load_balancer_type         = "application"
+  internal                   = false
+  security_groups            = [aws_security_group.alb.id]
+  subnets                    = aws_subnet.public[*].id
+  idle_timeout               = 120 # long-lived WebSockets + 25 MB clip uploads
   drop_invalid_header_fields = true
 }
 

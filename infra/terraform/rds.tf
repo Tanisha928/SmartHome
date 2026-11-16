@@ -4,7 +4,7 @@ variable "db_instance_class" {
 }
 
 resource "aws_db_instance" "smarthome" {
-  identifier                 = "${local.name}-postgres"
+  identifier                = "${local.name}-postgres"
   engine                    = "postgres"
   engine_version            = "16"
   instance_class            = var.db_instance_class
