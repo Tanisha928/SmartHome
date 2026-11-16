@@ -140,17 +140,8 @@ export function AdminLive({ houseId: initialHouseId }: { houseId: number }) {
     window.dispatchEvent(new CustomEvent("smarthome:demo-alert", { detail: alert }));
   }
   const onAlertChanged = () => {
-    if (import.meta.env.VITE_DEMO_MODE === "true") {
-      try {
-        const next = JSON.parse(localStorage.getItem("smarthome:demo-alerts") ?? "[]") as Alert[];
-        const updated = next.find((item) => item.alert_id === selected?.alert_id);
-        if (updated) setAlerts((current) => current.map((item) => item.alert_id === updated.alert_id ? updated : item));
-      } catch { /* ignore malformed demo state */ }
-      setSelected(null);
-    } else {
-      setSelected(null);
-      void load();
-    }
+    setSelected(null);
+    void load();
   };
 
   return (
