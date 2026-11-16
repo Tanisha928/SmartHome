@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     sns_retry_seconds: str = Field(default="5,15,45", alias="SNS_RETRY_SECONDS")
     classifier: str = Field(default="mock", alias="CLASSIFIER")
     model_entrypoint: str | None = Field(default=None, alias="MODEL_ENTRYPOINT")
+    model_path: str | None = Field(default=None, alias="MODEL_PATH")
     model_name: str = Field(default="supplied-model", alias="MODEL_NAME")
     model_version: str = Field(default="unknown", alias="MODEL_VERSION")
     internal_api_enabled: bool = Field(default=True, alias="INTERNAL_API_ENABLED")

@@ -59,8 +59,11 @@ services:
       AWS_ENDPOINT_URL: http://localstack:4566
       SQS_QUEUE_URL: http://localstack:4566/000000000000/inference-events
       SQS_DLQ_URL: http://localstack:4566/000000000000/inference-events-dlq
+      MODEL_ENTRYPOINT: app.ml.supplied_models:AccidentAudioModel
+      MODEL_PATH: /models/accident_model.pth
     volumes:
       - ./backend:/app
+      - ./accident_model.pth:/models/accident_model.pth:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,8 +86,11 @@ services:
       AWS_ENDPOINT_URL: http://localstack:4566
       SQS_QUEUE_URL: http://localstack:4566/000000000000/inference-events
       SQS_DLQ_URL: http://localstack:4566/000000000000/inference-events-dlq
+      MODEL_ENTRYPOINT: app.ml.supplied_models:AccidentAudioModel
+      MODEL_PATH: /models/accident_model.pth
     volumes:
       - ./backend:/app
+      - ./accident_model.pth:/models/accident_model.pth:ro
     depends_on:
       - backend
       - localstack
