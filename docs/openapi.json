@@ -3,7 +3,7 @@
   "info": {
     "title": "Smart Home Platform API",
     "version": "0.2.0",
-    "description": "Frozen stub for MSW / openapi-typescript. Regenerate from a running backend with `make openapi`."
+    "description": "Committed OpenAPI contract snapshot for the Smart Home Platform. The running FastAPI service is authoritative; refresh this file with `make openapi`, then regenerate frontend types with `npm run generate:api`."
   },
   "paths": {
     "/healthz": {
