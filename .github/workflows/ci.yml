@@ -62,7 +62,7 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: End-to-end tests
-        run: npm run e2e
+        run: npm run e2e -- --reporter=github
 
   terraform:
     runs-on: ubuntu-latest
