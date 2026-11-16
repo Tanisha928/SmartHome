@@ -38,8 +38,13 @@ Internet ─ ALB (public subnets, HTTPS/ACM, 80→443)
 4. `cd infra/terraform && terraform init && terraform apply`.
 5. Confirm the alarm email subscription. Shell access: `aws ssm start-session --target <instance-id>`.
 
-Data tier hooks for `rds.tf` / Mongo: use `aws_db_subnet_group.data`, `aws_security_group.postgres`
-and `aws_security_group.mongo` (also exported as outputs).
+The data tier is now declared in `rds.tf`, `s3.tf`, and `sqs.tf`: RDS is encrypted, Multi-AZ,
+private, and retains automated snapshots for seven days; S3 blocks public access, enables
+versioning/SSE, and applies clip and backup lifecycle rules; SQS has a long-polling inference
+queue with a three-attempt DLQ policy. MongoDB can be provisioned as a private EC2 instance
+by supplying a hardened AMI through `mongo_ami_id`; when it is omitted, configure an approved
+managed MongoDB service through `MONGO_URL` in SSM. The AMI must already contain MongoDB
+because data subnets have no internet route.
 
-> Not yet validated with `terraform validate`/`plan` — Terraform wasn't available where this was
-> written. Run both before the first apply.
+Before the first apply, run `terraform fmt -check -recursive`, `terraform init -backend=false`,
+and `terraform validate`. The same checks run in the Terraform CI job.

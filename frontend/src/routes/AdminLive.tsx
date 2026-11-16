@@ -15,7 +15,6 @@ import type { House } from "../features/devices/types";
 const categories = ["emergency", "safety", "security", "resident", "animal"];
 
 export function AdminLive({ houseId: initialHouseId }: { houseId: number }) {
-  // Admin tokens carry no house_ids, so the route's default is only a hint: pick from real houses.
   const [houseId, setHouseId] = useState(initialHouseId);
   const [houses, setHouses] = useState<House[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -28,16 +27,157 @@ export function AdminLive({ houseId: initialHouseId }: { houseId: number }) {
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
   const [saved, setSaved] = useState(false);
   const live = useAlertStore((state) => state.alerts);
-  const load = useCallback(async () => { setLoading(true); try { const [page, summary, houses] = await Promise.all([alertsApi.list({ ...filters, house_id: houseId }), alertsApi.stats(houseId), devicesApi.listHouses()]); setAlerts(page.items); setStats(summary); setHouses(houses.items); const current = houses.items.find((item) => item.house_id === houseId); if (!current && houses.items.length) { setHouseId(houses.items[0].house_id); return; } setHouse(current ?? null); setError(null); } catch (err) { setError(err as { message: string; correlationId?: string }); } finally { setLoading(false); } }, [filters, houseId]);
-  useEffect(() => { void load(); void alertsApi.savedViews().then((result) => setSavedViews(result.views)).catch(() => undefined); }, [load]);
-  useEffect(() => { const token = getAccessToken(); if (!token) return undefined; const socket = new AlertSocket({ houseIds: [houseId], token, refreshToken: refreshAccessToken, onState: () => undefined, onAlerts: (items) => useAlertStore.getState().replace(items), onMessage: (event) => useAlertStore.getState().applyMessage(event, [houseId]) }); socket.start(); return () => socket.stop(); }, [houseId]);
-  useEffect(() => { if (live.length) setAlerts((current) => { const merged = new Map(current.map((item) => [item.alert_id, item])); live.forEach((item) => { const existing = merged.get(item.alert_id); if (!existing || item.version >= existing.version) merged.set(item.alert_id, item); }); return [...merged.values()].sort((a, b) => new Date(b.updated_at ?? b.created_at ?? 0).getTime() - new Date(a.updated_at ?? a.created_at ?? 0).getTime()).slice(0, 200); }); }, [live]);
-  useEffect(() => { const onDemoAlert = (event: Event) => { const alert = (event as CustomEvent<Alert>).detail; if (alert?.house_id === houseId) setAlerts((current) => [alert, ...current.filter((item) => item.alert_id !== alert.alert_id)]); }; const onDemoState = () => { try { const next = JSON.parse(localStorage.getItem("smarthome:demo-state") ?? "null") as { alert_id?: number; house_id?: number; state?: Alert["state"] } | null; if (next?.house_id === houseId && next.alert_id && next.state) setAlerts((current) => current.map((item) => item.alert_id === next.alert_id ? { ...item, state: next.state ?? item.state } : item)); } catch { /* ignore malformed demo state */ } }; window.addEventListener("smarthome:demo-alert", onDemoAlert); window.addEventListener("storage", onDemoState); onDemoState(); return () => { window.removeEventListener("smarthome:demo-alert", onDemoAlert); window.removeEventListener("storage", onDemoState); }; }, [houseId]);
-  useEffect(() => { if (import.meta.env.VITE_DEMO_MODE !== "true" || loading) return; try { const next = JSON.parse(localStorage.getItem("smarthome:demo-state") ?? "null") as { alert_id?: number; house_id?: number; state?: Alert["state"] } | null; if (next?.house_id === houseId && next.alert_id && next.state) setAlerts((current) => current.map((item) => item.alert_id === next.alert_id && item.state !== next.state ? { ...item, state: next.state ?? item.state } : item)); } catch { /* ignore malformed demo state */ } }, [houseId, loading]);
-  const visible = useMemo(() => alerts.filter((alert) => (!filters.severity || alert.severity === filters.severity) && (!filters.category || alert.alert_category === filters.category) && (!filters.state || alert.state === filters.state)), [alerts, filters]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [page, summary, houses] = await Promise.all([
+        alertsApi.list({ ...filters, house_id: houseId }),
+        alertsApi.stats(houseId),
+        devicesApi.listHouses(),
+      ]);
+      setAlerts(page.items);
+      setStats(summary);
+      setHouses(houses.items);
+      const current = houses.items.find((item) => item.house_id === houseId);
+      if (!current && houses.items.length) {
+        setHouseId(houses.items[0].house_id);
+        return;
+      }
+      setHouse(current ?? null);
+      setError(null);
+    } catch (err) {
+      setError(err as { message: string; correlationId?: string });
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, houseId]);
+
+  useEffect(() => {
+    void load();
+    void alertsApi.savedViews().then((result) => setSavedViews(result.views)).catch(() => undefined);
+  }, [load]);
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return undefined;
+    const socket = new AlertSocket({
+      houseIds: [houseId],
+      token,
+      refreshToken: refreshAccessToken,
+      onState: () => undefined,
+      onAlerts: (items) => useAlertStore.getState().replace(items),
+      onMessage: (event) => useAlertStore.getState().applyMessage(event, [houseId]),
+    });
+    socket.start();
+    return () => socket.stop();
+  }, [houseId]);
+
+  useEffect(() => {
+    if (live.length) {
+      setAlerts((current) => {
+        const merged = new Map(current.map((item) => [item.alert_id, item]));
+        live.forEach((item) => {
+          const existing = merged.get(item.alert_id);
+          if (!existing || item.version >= existing.version) merged.set(item.alert_id, item);
+        });
+        return [...merged.values()]
+          .sort((a, b) => new Date(b.updated_at ?? b.created_at ?? 0).getTime() - new Date(a.updated_at ?? a.created_at ?? 0).getTime())
+          .slice(0, 200);
+      });
+    }
+  }, [live]);
+
+  useEffect(() => {
+    const onDemoAlert = (event: Event) => {
+      const alert = (event as CustomEvent<Alert>).detail;
+      if (alert?.house_id === houseId) setAlerts((current) => [alert, ...current.filter((item) => item.alert_id !== alert.alert_id)]);
+    };
+    const onDemoState = () => {
+      try {
+        const next = JSON.parse(localStorage.getItem("smarthome:demo-state") ?? "null") as { alert_id?: number; house_id?: number; state?: Alert["state"] } | null;
+        if (next?.house_id === houseId && next.alert_id && next.state) {
+          setAlerts((current) => current.map((item) => item.alert_id === next.alert_id ? { ...item, state: next.state ?? item.state } : item));
+        }
+      } catch { /* ignore malformed demo state */ }
+    };
+    window.addEventListener("smarthome:demo-alert", onDemoAlert);
+    window.addEventListener("storage", onDemoState);
+    onDemoState();
+    return () => {
+      window.removeEventListener("smarthome:demo-alert", onDemoAlert);
+      window.removeEventListener("storage", onDemoState);
+    };
+  }, [houseId]);
+
+  useEffect(() => {
+    if (import.meta.env.VITE_DEMO_MODE !== "true" || loading) return;
+    try {
+      const next = JSON.parse(localStorage.getItem("smarthome:demo-state") ?? "null") as { alert_id?: number; house_id?: number; state?: Alert["state"] } | null;
+      if (next?.house_id === houseId && next.alert_id && next.state) {
+        setAlerts((current) => current.map((item) => item.alert_id === next.alert_id && item.state !== next.state ? { ...item, state: next.state ?? item.state } : item));
+      }
+    } catch { /* ignore malformed demo state */ }
+  }, [houseId, loading]);
+
+  const visible = useMemo(
+    () => alerts.filter((alert) => (!filters.severity || alert.severity === filters.severity) && (!filters.category || alert.alert_category === filters.category) && (!filters.state || alert.state === filters.state)),
+    [alerts, filters],
+  );
   const update = (patch: Partial<AlertFilters>) => setFilters((current) => ({ ...current, ...patch }));
-  async function saveView() { const views = [...savedViews, filters]; await alertsApi.saveViews(views); setSavedViews(views); setSaved(true); }
-  function simulateDemoAlert() { const alert: Alert = { alert_id: Date.now(), event_id: Date.now(), house_id: houseId, room_id: 1, device_id: 7, alert_category: "security", sound_type: "glass_break", severity: "critical", state: "new", suppressed_count: 0, version: 1, confidence: 0.97, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }; const current = JSON.parse(localStorage.getItem("smarthome:demo-alerts") ?? "[]") as Alert[]; localStorage.setItem("smarthome:demo-alerts", JSON.stringify([alert, ...current])); setAlerts((current) => [alert, ...current]); window.dispatchEvent(new CustomEvent("smarthome:demo-alert", { detail: alert })); }
-  const onAlertChanged = () => { if (import.meta.env.VITE_DEMO_MODE === "true") { try { const next = JSON.parse(localStorage.getItem("smarthome:demo-alerts") ?? "[]") as Alert[]; const updated = next.find((item) => item.alert_id === selected?.alert_id); if (updated) setAlerts((current) => current.map((item) => item.alert_id === updated.alert_id ? updated : item)); } catch { /* ignore malformed demo state */ } setSelected(null); } else { setSelected(null); void load(); } };
-  return <div className="app-shell"><header className="topbar"><div><p className="eyebrow">Operations / live monitoring</p><h1>Live alert map</h1><p className="muted">{houses.length > 1 ? <select aria-label="House" value={houseId} onChange={(event) => { setHouseId(Number(event.target.value)); setFilters((current) => ({ ...current, house_id: Number(event.target.value) })); }}>{houses.map((item) => <option key={item.house_id} value={item.house_id}>House {item.house_id}{item.address_line ? ` · ${item.address_line}` : ""}</option>)}</select> : <>House {houseId}</>} · live updates</p></div><div className="header-actions">{import.meta.env.VITE_DEMO_MODE === "true" && <button className="secondary" onClick={simulateDemoAlert}>Simulate glass break</button>}<button className="secondary" onClick={() => void saveView()}>Save view</button><button className="secondary" onClick={() => void load()}>Refresh</button></div></header>{savedViews.length > 0 && <select className="saved-view-select" aria-label="Saved views" onChange={(event) => { const view = savedViews[Number(event.target.value)]; if (view) setFilters(view); }}><option value="">Saved views</option>{savedViews.map((view, index) => <option key={index} value={index}>View {index + 1} · {view.category ?? view.severity ?? "all"}</option>)}</select>}{saved && <div className="notice">View saved for your account.</div>}<DataView loading={loading} error={error} onRetry={() => void load()} empty={!loading && visible.length === 0}><section className="category-tiles">{categories.map((category) => <button className={`category-tile ${filters.category === category ? "selected" : ""}`} key={category} onClick={() => update({ category: filters.category === category ? undefined : category })}><span>{category}</span><strong>{stats?.by_category[category] ?? 0}</strong></button>)}</section><section className="filter-rail"><input aria-label="Sound type" placeholder="Sound type" value={filters.sound_type ?? ""} onChange={(event) => update({ sound_type: event.target.value || undefined })} /><input aria-label="Minimum confidence" type="number" min="0" max="1" step=".01" placeholder="Min confidence" value={filters.min_confidence ?? ""} onChange={(event) => update({ min_confidence: event.target.value ? Number(event.target.value) : undefined })} /><input aria-label="From date" type="date" value={filters.from ?? ""} onChange={(event) => update({ from: event.target.value || undefined })} /><input aria-label="To date" type="date" value={filters.to ?? ""} onChange={(event) => update({ to: event.target.value || undefined })} /><select aria-label="Filter by severity" value={filters.severity ?? ""} onChange={(event) => update({ severity: event.target.value as AlertFilters["severity"] || undefined })}><option value="">All severity</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select><select aria-label="Filter by state" value={filters.state ?? ""} onChange={(event) => update({ state: event.target.value as AlertState || undefined })}><option value="">All states</option><option value="new">New</option><option value="notified">Notified</option><option value="acknowledged">Acknowledged</option><option value="escalated">Escalated</option><option value="resolved">Resolved</option></select></section><div className="live-layout"><section className="card map-card"><LiveMap alerts={visible} house={house} onSelect={setSelected} /></section><section className="card"><div className="section-heading"><div><p className="eyebrow">Alert stream</p><h2>{visible.length} alerts</h2></div></div>{visible.map((alert) => <button className="live-alert-row" key={alert.alert_id} onClick={() => setSelected(alert)}><span className={`alert-dot ${alert.severity}`} /><span><strong>{friendlyLabel(alert.sound_type)}</strong><small>Room {alert.room_id} · {new Date(alert.created_at ?? "").toLocaleString()}</small></span><SeverityBadge severity={alert.severity} /><span className={`status ${alert.state}`}>{alert.state.replace("_", " ")}</span></button>)}</section></div></DataView>{selected && <AlertDetailPanel alert={selected} role="admin" onClose={() => setSelected(null)} onChanged={onAlertChanged} />}</div>;
+  async function saveView() {
+    const views = [...savedViews, filters];
+    await alertsApi.saveViews(views);
+    setSavedViews(views);
+    setSaved(true);
+  }
+  function simulateDemoAlert() {
+    const now = new Date().toISOString();
+    const alert: Alert = { alert_id: Date.now(), event_id: Date.now(), house_id: houseId, room_id: 1, device_id: 7, alert_category: "security", sound_type: "glass_break", severity: "critical", state: "new", suppressed_count: 0, version: 1, confidence: 0.97, created_at: now, updated_at: now };
+    const current = JSON.parse(localStorage.getItem("smarthome:demo-alerts") ?? "[]") as Alert[];
+    localStorage.setItem("smarthome:demo-alerts", JSON.stringify([alert, ...current]));
+    setAlerts((currentAlerts) => [alert, ...currentAlerts]);
+    window.dispatchEvent(new CustomEvent("smarthome:demo-alert", { detail: alert }));
+  }
+  const onAlertChanged = () => {
+    setSelected(null);
+    void load();
+  };
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Operations / live monitoring</p>
+          <h1>Live alert map</h1>
+          <p className="muted">
+            {houses.length > 1 ? <select aria-label="House" value={houseId} onChange={(event) => { setHouseId(Number(event.target.value)); setFilters((current) => ({ ...current, house_id: Number(event.target.value) })); }}>{houses.map((item) => <option key={item.house_id} value={item.house_id}>House {item.house_id}{item.address_line ? ` · ${item.address_line}` : ""}</option>)}</select> : <>House {houseId}</>} · live updates
+          </p>
+        </div>
+        <div className="header-actions">
+          {import.meta.env.VITE_DEMO_MODE === "true" && <button className="secondary" onClick={simulateDemoAlert}>Simulate glass break</button>}
+          <button className="secondary" onClick={() => void saveView()}>Save view</button>
+          <button className="secondary" onClick={() => void load()}>Refresh</button>
+        </div>
+      </header>
+      {savedViews.length > 0 && <select className="saved-view-select" aria-label="Saved views" onChange={(event) => { const view = savedViews[Number(event.target.value)]; if (view) setFilters(view); }}><option value="">Saved views</option>{savedViews.map((view, index) => <option key={index} value={index}>View {index + 1} · {view.category ?? view.severity ?? "all"}</option>)}</select>}
+      {saved && <div className="notice">View saved for your account.</div>}
+      <DataView loading={loading} error={error} onRetry={() => void load()} empty={!loading && visible.length === 0}>
+        <section className="category-tiles">{categories.map((category) => <button className={`category-tile ${filters.category === category ? "selected" : ""}`} key={category} onClick={() => update({ category: filters.category === category ? undefined : category })}><span>{category}</span><strong>{stats?.by_category[category] ?? 0}</strong></button>)}</section>
+        <section className="filter-rail">
+          <input aria-label="Sound type" placeholder="Sound type" value={filters.sound_type ?? ""} onChange={(event) => update({ sound_type: event.target.value || undefined })} />
+          <input aria-label="Minimum confidence" type="number" min="0" max="1" step=".01" placeholder="Min confidence" value={filters.min_confidence ?? ""} onChange={(event) => update({ min_confidence: event.target.value ? Number(event.target.value) : undefined })} />
+          <input aria-label="From date" type="date" value={filters.from ?? ""} onChange={(event) => update({ from: event.target.value || undefined })} />
+          <input aria-label="To date" type="date" value={filters.to ?? ""} onChange={(event) => update({ to: event.target.value || undefined })} />
+          <select aria-label="Filter by severity" value={filters.severity ?? ""} onChange={(event) => update({ severity: event.target.value as AlertFilters["severity"] || undefined })}><option value="">All severity</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+          <select aria-label="Filter by state" value={filters.state ?? ""} onChange={(event) => update({ state: event.target.value as AlertState || undefined })}><option value="">All states</option><option value="new">New</option><option value="notified">Notified</option><option value="acknowledged">Acknowledged</option><option value="escalated">Escalated</option><option value="resolved">Resolved</option></select>
+        </section>
+        <div className="live-layout">
+          <section className="card map-card"><LiveMap alerts={visible} house={house} onSelect={setSelected} /></section>
+          <section className="card"><div className="section-heading"><div><p className="eyebrow">Alert stream</p><h2>{visible.length} alerts</h2></div></div>{visible.map((alert) => <button className="live-alert-row" key={alert.alert_id} onClick={() => setSelected(alert)}><span className={`alert-dot ${alert.severity}`} /><span><strong>{friendlyLabel(alert.sound_type)}</strong><small>Room {alert.room_id} · {new Date(alert.created_at ?? "").toLocaleString()}</small></span><SeverityBadge severity={alert.severity} /><span className={`status ${alert.state}`}>{alert.state.replace("_", " ")}</span></button>)}</section>
+        </div>
+      </DataView>
+      {selected && <AlertDetailPanel alert={selected} role="admin" onClose={() => setSelected(null)} onChanged={onAlertChanged} />}
+    </div>
+  );
 }

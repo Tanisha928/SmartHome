@@ -1,9 +1,12 @@
 import { http, HttpResponse } from "msw";
-import { demoAlerts, demoPage, demoStats } from "./fixtures";
+import { demoAlerts, demoStats } from "./fixtures";
+import type { Alert } from "../features/alerts/types";
 
 const demoSettings = { default_map_latitude: 47.6062, default_map_longitude: -122.3321, show_critical_toasts: true, play_alert_sound: true, updated_at: new Date().toISOString() };
 const demoPreferences = [{ alert_category: "safety", email: true, sms: true, min_severity: "high" }];
 const demoThresholds = [{ id: 1, scope: "global", scope_id: null, sound_type: "fall", threshold: 0.8 }];
+let demoSavedViews: Array<Record<string, unknown>> = [];
+let demoPipelineEvent = { event_id: 1, house_id: 1, device_id: 7, processing_state: "failed", retry_count: 1, captured_at: new Date().toISOString(), correlation_id: "demo-event-1" };
 let demoCurrentAlert = { ...demoAlerts[0] };
 let demoUser: { id: number; email: string; full_name: string; role: "admin" | "owner"; house_ids: number[] } = { id: 1, email: "admin@example.com", full_name: "Demo Admin", role: "admin", house_ids: [1] };
 const simulatedAlerts = () => {
@@ -17,7 +20,34 @@ const simulatedAlerts = () => {
 const saveSimulatedAlerts = (items: typeof demoAlerts) => localStorage.setItem("smarthome:demo-alerts", JSON.stringify(items));
 const allDemoAlerts = () => {
   const simulated = simulatedAlerts();
-  return [demoCurrentAlert, ...demoAlerts.filter((item) => item.alert_id !== demoCurrentAlert.alert_id && !simulated.some((alert) => alert.alert_id === item.alert_id)), ...simulated];
+  let current = demoCurrentAlert;
+  try {
+    const state = JSON.parse(localStorage.getItem("smarthome:demo-state") ?? "null") as { alert_id?: number; state?: Alert["state"] } | null;
+    if (state?.alert_id === current.alert_id && state.state) current = { ...current, state: state.state };
+  } catch { /* ignore malformed demo state */ }
+  return [current, ...demoAlerts.filter((item) => item.alert_id !== current.alert_id && !simulated.some((alert) => alert.alert_id === item.alert_id)), ...simulated];
+};
+const filteredDemoAlerts = (request: Request) => {
+  const params = new URL(request.url).searchParams;
+  const q = params.get("q")?.trim().toLowerCase();
+  const severity = params.get("severity");
+  const state = params.get("state");
+  const category = params.get("category");
+  const soundType = params.get("sound_type");
+  const from = params.get("from");
+  const to = params.get("to");
+  const minConfidenceValue = params.get("min_confidence");
+  const maxConfidenceValue = params.get("max_confidence");
+  const minConfidence = minConfidenceValue === null ? undefined : Number(minConfidenceValue);
+  const maxConfidence = maxConfidenceValue === null ? undefined : Number(maxConfidenceValue);
+  const filtered = allDemoAlerts().filter((alert) => {
+    const text = `${alert.alert_id} ${alert.sound_type ?? ""} ${alert.alert_category} ${alert.house_id} ${alert.room_id}`.toLowerCase();
+    const created = alert.created_at ?? "";
+    return (!q || text.includes(q)) && (!severity || alert.severity === severity) && (!state || alert.state === state) && (!category || alert.alert_category === category) && (!soundType || alert.sound_type === soundType) && (!from || created >= from) && (!to || created.slice(0, 10) <= to) && (minConfidence === undefined || !Number.isNaN(minConfidence) && (alert.confidence ?? 0) >= minConfidence) && (maxConfidence === undefined || !Number.isNaN(maxConfidence) && (alert.confidence ?? 1) <= maxConfidence);
+  });
+  const page = Math.max(1, Number(params.get("page") ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Number(params.get("page_size") ?? 100)));
+  return { items: filtered.slice((page - 1) * pageSize, page * pageSize), total: filtered.length, page, page_size: pageSize };
 };
 export const handlers = [
   http.post("*/api/auth/login", async ({ request }) => {
@@ -31,7 +61,7 @@ export const handlers = [
   http.post("*/api/auth/refresh", () => HttpResponse.json({ access_token: "demo-token" })),
   http.post("*/api/auth/logout", () => new HttpResponse(null, { status: 204 })),
   http.get("*/api/users/me", () => HttpResponse.json(demoUser)),
-  http.get("*/api/alerts", () => { const items = allDemoAlerts(); return HttpResponse.json({ ...demoPage, items, total: items.length }); }),
+  http.get("*/api/alerts", ({ request }) => HttpResponse.json(filteredDemoAlerts(request))),
   http.get("*/api/alerts/:id", ({ params }) => { const alert = allDemoAlerts().find((item) => item.alert_id === Number(params.id)); return HttpResponse.json(alert ? { ...alert, history: [], deliveries: [] } : { error: "not_found", message: "Alert not found" }, { status: alert ? 200 : 404 }); }),
   http.post("*/api/alerts/:id/resend", () => HttpResponse.json({ accepted: true })),
   http.get("*/api/alerts/export", ({ request }) => new HttpResponse(request.url.includes("format=pdf") ? new Uint8Array([37, 80, 68, 70]) : "alert_id,sound_type\n101,fall\n", { headers: { "Content-Type": request.url.includes("format=pdf") ? "application/pdf" : "text/csv" } })),
@@ -52,16 +82,16 @@ export const handlers = [
   http.post("*/api/houses/:id/disable", () => HttpResponse.json({ house_id: 1, status: "disabled", devices_updated: 1 })),
   http.post("*/api/houses/:id/enable", () => HttpResponse.json({ house_id: 1, status: "active", devices_updated: 1 })),
   http.get("*/api/admin/audit", () => HttpResponse.json({ items: [] })),
-  http.get("*/api/admin/data/health", () => HttpResponse.json({ queue_depth: 0, dlq_depth: 0, event_counts: {}, inference_latency_ms: 0, last_backup_at: null })),
-  http.get("*/api/admin/events", () => HttpResponse.json({ items: [], total: 0 })),
-  http.post("*/api/admin/events/:id/retry", () => HttpResponse.json({ event_id: 1, processing_state: "queued" })),
+  http.get("*/api/admin/data/health", () => HttpResponse.json({ postgres: "ok", mongo: "ok", s3: "ok", sqs: { visible: 0, in_flight: 0 }, dlq: { visible: 0 }, backups: { rds_snapshot_age_h: null, mongo_dump_age_d: null }, unprocessed_events: 0 })),
+  http.get("*/api/admin/events", () => HttpResponse.json({ items: [demoPipelineEvent], total: 1 })),
+  http.post("*/api/admin/events/:id/retry", () => { demoPipelineEvent = { ...demoPipelineEvent, processing_state: "queued", retry_count: demoPipelineEvent.retry_count + 1 }; return HttpResponse.json({ event_id: demoPipelineEvent.event_id, processing_state: demoPipelineEvent.processing_state }); }),
   http.get("*/api/admin/inference-logs", () => HttpResponse.json({ items: [], total: 0 })),
   http.get("*/api/admin/retention", () => HttpResponse.json({ clip_expire_days: 30, clip_ia_transition_days: null, telemetry_ttl_days: 30 })),
   http.put("*/api/admin/retention", async ({ request }) => HttpResponse.json(await request.json())),
   http.get("*/api/users/me/dashboard-settings", () => HttpResponse.json(demoSettings)),
   http.put("*/api/users/me/dashboard-settings", async ({ request }) => Object.assign(demoSettings, await request.json(), { updated_at: new Date().toISOString() }) && HttpResponse.json(demoSettings)),
-  http.get("*/api/users/me/saved-views", () => HttpResponse.json({ views: [] })),
-  http.put("*/api/users/me/saved-views", () => HttpResponse.json({ views: [] })),
+  http.get("*/api/users/me/saved-views", () => HttpResponse.json({ views: demoSavedViews })),
+  http.put("*/api/users/me/saved-views", async ({ request }) => { const body = await request.json() as { views?: Array<Record<string, unknown>> }; demoSavedViews = body.views ?? []; return HttpResponse.json({ views: demoSavedViews }); }),
   http.get("*/api/notification-prefs", () => HttpResponse.json({ house_id: 1, items: demoPreferences })),
   http.put("*/api/notification-prefs", async ({ request }) => HttpResponse.json({ house_id: 1, items: await request.json() })),
   http.get("*/api/admin/thresholds", () => HttpResponse.json({ items: demoThresholds })),

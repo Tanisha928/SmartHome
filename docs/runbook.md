@@ -20,4 +20,4 @@ curl -sf localhost:8000/healthz
 ## Gaps for teammates
 
 - Connectivity sweeper and escalation timer hooks are wired in `app/workers/sweepers.py` but implementations live with Sakshat/Vritika.
-- Production Terraform data tier stubs are under `infra/terraform/` — complete with Sakshat (T17/S18).
+- Production Terraform provisions the encrypted RDS instance, private data subnet group, S3 clip/backup bucket, and SQS queues. MongoDB must be supplied on a private data-tier host or managed service and configured through `MONGO_URL`.
