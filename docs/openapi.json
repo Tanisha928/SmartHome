@@ -57,6 +57,27 @@
     "/api/houses/{house_id}": {
       "get": { "summary": "House detail", "parameters": [{ "name": "house_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" } } }
     },
+    "/api/houses/{house_id}/disable": { "post": { "summary": "Disable house and devices", "parameters": [{ "name": "house_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "House disabled" } } } },
+    "/api/houses/{house_id}/enable": { "post": { "summary": "Enable house and devices", "parameters": [{ "name": "house_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "House enabled" } } } },
+    "/api/rooms": {
+      "get": { "summary": "List rooms", "parameters": [{ "name": "house_id", "in": "query", "required": false, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Room inventory" } } },
+      "post": { "summary": "Create room", "responses": { "201": { "description": "Created" }, "403": { "description": "House out of scope" }, "409": { "description": "Duplicate label" } } }
+    },
+    "/api/rooms/{room_id}": { "patch": { "summary": "Update room", "parameters": [{ "name": "room_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Updated room" } } } },
+    "/api/devices": {
+      "get": { "summary": "List devices", "responses": { "200": { "description": "Paged device inventory" } } },
+      "post": { "summary": "Register device", "responses": { "201": { "description": "Created with one-time API key" }, "409": { "description": "Duplicate serial" } } }
+    },
+    "/api/devices/{device_id}": {
+      "get": { "summary": "Get device", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Device" } } },
+      "patch": { "summary": "Update device", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Updated device" }, "422": { "description": "Invalid threshold" } } },
+      "delete": { "summary": "Remove device", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "204": { "description": "Removed" } } }
+    },
+    "/api/devices/{device_id}/rotate-key": { "post": { "summary": "Rotate device API key", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "New one-time API key" }, "403": { "description": "Admin required" } } } },
+    "/api/devices/{device_id}/command": { "post": { "summary": "Queue device command", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "202": { "description": "Command queued" }, "409": { "description": "Command already pending" } } } },
+    "/api/auth/device-token": { "post": { "summary": "Issue device token", "responses": { "200": { "description": "Short-lived device JWT" }, "401": { "description": "Invalid device credentials" } } } },
+    "/api/devices/{device_id}/heartbeat": { "post": { "summary": "Device heartbeat", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Online state, commands, and configuration" }, "403": { "description": "Device mismatch" } } } },
+    "/api/devices/{device_id}/command-ack": { "post": { "summary": "Acknowledge device command", "parameters": [{ "name": "device_id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Command acknowledged" }, "403": { "description": "Device mismatch" } } } },
     "/api/ingest/events": {
       "post": { "summary": "Ingest clip", "responses": { "202": { "description": "Queued" }, "200": { "description": "Duplicate" }, "403": { "description": "Scope" }, "413": { "description": "Too large" }, "503": { "description": "Storage down" } } }
     },
@@ -74,6 +95,7 @@
       "get": { "summary": "Get retention policy", "responses": { "200": { "description": "OK" } } },
       "put": { "summary": "Update retention policy", "responses": { "200": { "description": "OK" }, "400": { "description": "Invalid range" } } }
     },
+    "/api/admin/retention/run": { "post": { "summary": "Run retention and backup job", "responses": { "200": { "description": "Retention and backup status" }, "403": { "description": "Admin required" } } } },
     "/api/alerts": { "get": { "summary": "List scoped alerts", "responses": { "200": { "description": "Scoped paginated alerts" }, "403": { "description": "House out of scope" } } } },
     "/api/alerts/{alert_id}": { "get": { "summary": "Alert detail with history and deliveries", "responses": { "200": { "description": "Alert detail" }, "403": { "description": "House out of scope" } } } },
     "/api/alerts/{alert_id}/state": { "patch": { "summary": "Transition alert state", "responses": { "200": { "description": "Updated alert" }, "409": { "description": "Stale state conflict" }, "422": { "description": "Invalid transition" } } } },
