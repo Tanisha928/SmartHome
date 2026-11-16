@@ -35,7 +35,7 @@ export function EventPipeline() {
 
   return (
     <section aria-label="Event pipeline">
-      <h2>D2 · Event pipeline</h2>
+      <h2>Event pipeline</h2>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
         {STATES.map((s) => (
           <button

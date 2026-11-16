@@ -29,7 +29,7 @@ export function AuditLog() {
 
   return (
     <section aria-label="Audit log">
-      <h2>D4 · Audit log</h2>
+      <h2>Audit log</h2>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
         <button type="button" style={{ minHeight: 44 }} onClick={() => void load()}>
           Load

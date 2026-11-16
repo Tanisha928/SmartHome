@@ -35,7 +35,8 @@ export function RetentionBackup() {
 
   return (
     <section aria-label="Retention and backup">
-      <h2>D5 · Retention &amp; backup</h2>
+      <h2>Retention &amp; backup</h2>
+      <p>Manage how long recordings and telemetry are kept in your workspace.</p>
       {error && <p role="alert">{error}</p>}
       <div style={{ display: "grid", gap: "0.75rem", maxWidth: 420 }}>
         <label>
