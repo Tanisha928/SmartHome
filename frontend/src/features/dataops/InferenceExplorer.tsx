@@ -23,7 +23,8 @@ export function InferenceExplorer() {
 
   return (
     <section aria-label="Inference explorer">
-      <h2>D3 · Inference explorer</h2>
+      <h2>Inference explorer</h2>
+      <p>Explore model predictions and trace how events are classified.</p>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
         <label>
           Model version
@@ -38,6 +39,7 @@ export function InferenceExplorer() {
         </button>
       </div>
       <ul>
+        {items.length === 0 && <li className="empty-card"><h3>No inference logs to display</h3><p>Model predictions will appear here as events are processed. Try another model version or label.</p></li>}
         {items.map((log) => (
           <li key={log.id}>
             event {log.event_id} · {log.model?.version ?? "?"} ·{" "}

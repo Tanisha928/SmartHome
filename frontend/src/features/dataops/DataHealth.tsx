@@ -32,25 +32,26 @@ export function DataHealth() {
   if (error) return <p role="alert">Health error: {error}</p>;
   if (!health) return <p>Loading data health…</p>;
 
-  const tiles: Array<{ label: string; value: string }> = [
-    { label: "PostgreSQL", value: health.postgres },
-    { label: "MongoDB", value: health.mongo },
-    { label: "S3", value: health.s3 },
-    { label: "SQS visible", value: String(health.sqs.visible) },
-    { label: "SQS in-flight", value: String(health.sqs.in_flight) },
-    { label: "DLQ", value: String(health.dlq.visible) },
-    { label: "Unprocessed", value: String(health.unprocessed_events) },
+  const tiles: Array<{ label: string; service: string; value: string }> = [
+    { label: "Application database", service: "PostgreSQL", value: health.postgres },
+    { label: "Inference & telemetry storage", service: "MongoDB", value: health.mongo },
+    { label: "Recording storage", service: "Amazon S3", value: health.s3 },
+    { label: "Events waiting to process", service: "Amazon SQS · Waiting", value: String(health.sqs.visible) },
+    { label: "Events being processed", service: "Amazon SQS · In progress", value: String(health.sqs.in_flight) },
+    { label: "Failed events", service: "Amazon SQS · Dead-letter queue", value: String(health.dlq.visible) },
+    { label: "Pending events", service: "Application processing backlog", value: String(health.unprocessed_events) },
   ];
 
   return (
     <section aria-label="Data health">
-      <h2>D1 · Data health</h2>
-      <p>Refreshes every 15 seconds.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "1rem" }}>
+      <h2>Data health</h2>
+      <p>Storage, processing, and queue activity at a glance. Updates every 15 seconds.</p>
+      <div className="health-grid">
         {tiles.map((t) => (
-          <div key={t.label} style={{ padding: "1rem", background: "#fff", borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: "#64748b" }}>{t.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 600 }}>{t.value}</div>
+          <div key={t.label} className="health-tile">
+            <span>{t.label}</span>
+            <strong>{t.value === "ok" ? "Operational" : t.value}</strong>
+            <small>{t.service}</small>
           </div>
         ))}
       </div>

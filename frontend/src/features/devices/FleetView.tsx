@@ -61,7 +61,7 @@ export function FleetView() {
   return (
     <section aria-label="Fleet" style={{ display: "grid", gap: "1rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>A8 · Fleet</h2>
+        <h2 style={{ margin: 0 }}>Device fleet</h2>
         <span style={{ color: "#64748b", fontSize: 14 }}>
           {loadedAt ? `Updated ${heartbeatAge(new Date(loadedAt).toISOString())}` : "Loading…"}
         </span>

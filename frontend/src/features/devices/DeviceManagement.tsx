@@ -183,7 +183,7 @@ export function DeviceManagement() {
 
   return (
     <section aria-label="Device management" style={{ display: "grid", gap: "1rem" }}>
-      <h2 style={{ margin: 0 }}>A4 · Device management</h2>
+      <h2 style={{ margin: 0 }}>Device management</h2>
       {error && <Notice kind="error">{error}</Notice>}
       {info && <Notice kind="info">{info}</Notice>}
 

@@ -8,8 +8,8 @@ export const colors = {
   online: { bg: "#dcfce7", fg: "#166534" },
   offline: { bg: "#fee2e2", fg: "#991b1b" },
   disabled: { bg: "#e2e8f0", fg: "#334155" },
-  primary: "#0f766e",
-  border: "#cbd5e1",
+  primary: "#285847",
+  border: "#e2e7e1",
 };
 
 export const button = {
