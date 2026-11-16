@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { demoAlerts, demoStats } from "./fixtures";
+import type { Alert } from "../features/alerts/types";
 
 const demoSettings = { default_map_latitude: 47.6062, default_map_longitude: -122.3321, show_critical_toasts: true, play_alert_sound: true, updated_at: new Date().toISOString() };
 const demoPreferences = [{ alert_category: "safety", email: true, sms: true, min_severity: "high" }];
@@ -19,7 +20,12 @@ const simulatedAlerts = () => {
 const saveSimulatedAlerts = (items: typeof demoAlerts) => localStorage.setItem("smarthome:demo-alerts", JSON.stringify(items));
 const allDemoAlerts = () => {
   const simulated = simulatedAlerts();
-  return [demoCurrentAlert, ...demoAlerts.filter((item) => item.alert_id !== demoCurrentAlert.alert_id && !simulated.some((alert) => alert.alert_id === item.alert_id)), ...simulated];
+  let current = demoCurrentAlert;
+  try {
+    const state = JSON.parse(localStorage.getItem("smarthome:demo-state") ?? "null") as { alert_id?: number; state?: Alert["state"] } | null;
+    if (state?.alert_id === current.alert_id && state.state) current = { ...current, state: state.state };
+  } catch { /* ignore malformed demo state */ }
+  return [current, ...demoAlerts.filter((item) => item.alert_id !== current.alert_id && !simulated.some((alert) => alert.alert_id === item.alert_id)), ...simulated];
 };
 const filteredDemoAlerts = (request: Request) => {
   const params = new URL(request.url).searchParams;
