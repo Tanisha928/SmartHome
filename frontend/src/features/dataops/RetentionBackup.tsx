@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { dataOpsApi } from "./api";
 import type { RetentionPolicy } from "./types";
+import { retentionError } from "../../lib/retention";
 
 export function RetentionBackup() {
   const [policy, setPolicy] = useState<RetentionPolicy | null>(null);
@@ -8,6 +9,7 @@ export function RetentionBackup() {
   const [expire, setExpire] = useState(30);
   const [ia, setIa] = useState<number | "">("");
   const [ttl, setTtl] = useState(30);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     void dataOpsApi.getRetention().then((p) => {
@@ -15,10 +17,14 @@ export function RetentionBackup() {
       setExpire(p.clip_expire_days);
       setIa(p.clip_ia_transition_days ?? "");
       setTtl(p.telemetry_ttl_days);
-    });
+    }).catch(() => setError("Unable to load retention settings."));
   }, []);
 
   const save = async () => {
+    setSaved(false);
+    const input = { clip_expire_days: expire, clip_ia_transition_days: ia === "" ? null : Number(ia), telemetry_ttl_days: ttl };
+    const validation = retentionError(input);
+    if (validation) { setError(validation); return; }
     try {
       const updated = await dataOpsApi.putRetention({
         clip_expire_days: expire,
@@ -27,6 +33,7 @@ export function RetentionBackup() {
       });
       setPolicy(updated);
       setError(null);
+      setSaved(true);
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e.message ?? "Invalid retention settings");
@@ -38,11 +45,15 @@ export function RetentionBackup() {
       <h2>Retention &amp; backup</h2>
       <p>Manage how long recordings and telemetry are kept in your workspace.</p>
       {error && <p role="alert">{error}</p>}
+      {saved && <p role="status">Retention policy saved.</p>}
       <div style={{ display: "grid", gap: "0.75rem", maxWidth: 420 }}>
         <label>
           Clip expire days
           <input
             type="number"
+            min="1"
+            step="1"
+            disabled={!policy}
             value={expire}
             onChange={(e) => setExpire(Number(e.target.value))}
           />
@@ -51,15 +62,18 @@ export function RetentionBackup() {
           IA transition days (optional)
           <input
             type="number"
+            min="1"
+            step="1"
+            disabled={!policy}
             value={ia}
             onChange={(e) => setIa(e.target.value === "" ? "" : Number(e.target.value))}
           />
         </label>
         <label>
           Telemetry TTL days
-          <input type="number" value={ttl} onChange={(e) => setTtl(Number(e.target.value))} />
+          <input type="number" min="1" step="1" disabled={!policy} value={ttl} onChange={(e) => setTtl(Number(e.target.value))} />
         </label>
-        <button type="button" style={{ minHeight: 44 }} onClick={() => void save()}>
+        <button type="button" disabled={!policy} style={{ minHeight: 44 }} onClick={() => void save()}>
           Save policy
         </button>
       </div>

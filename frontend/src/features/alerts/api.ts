@@ -61,6 +61,7 @@ export const alertsApi = {
     link.href = url;
     link.download = format === "csv" ? "alerts.csv" : "alerts.pdf";
     link.click();
-    URL.revokeObjectURL(url);
+    // Give the browser time to consume the download URL before releasing it.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 };
