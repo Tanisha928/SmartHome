@@ -146,7 +146,11 @@ tbody tr:hover, .history-table tbody tr:hover { background: #f8faf6; }
 .owner-device-tile { padding: 24px; background: #f8faf6; border-color: #e1e8dc; }
 .owner-device-tile strong { font-size: 13px; }
 .owner-device-tile small { font-size: 11px; }
-.settings-grid { gap: 20px; }
+.settings-grid { gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-grid > *, .workspace-content, .workspace-main { min-width: 0; }
+.settings-fields { border: 0; padding: 0; margin: 0; }
+.preference-table { max-width: 100%; overflow-x: auto; }
+.settings-grid .section-heading { flex-wrap: wrap; }
 .settings-grid label { font-size: 12px; font-weight: 500; }
 .settings-grid p { font-size: 13px; color: var(--muted); }
 .hero { background: #2d4e3d; border-radius: 10px; padding: 32px; }
@@ -215,4 +219,5 @@ tbody tr:hover, .history-table tbody tr:hover { background: #f8faf6; }
   .workspace-content section[aria-label] form > div[style*="grid"] { grid-template-columns: minmax(0,1fr) !important; }
   .workspace-content > section[aria-label] > h2 { font-size: 26px; }
   .history-table { display: block; overflow-x: auto; }
+  .settings-grid { grid-template-columns: minmax(0, 1fr); }
 }

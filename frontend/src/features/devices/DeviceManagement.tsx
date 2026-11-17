@@ -154,17 +154,19 @@ export function DeviceManagement() {
     selected &&
     void run(async () => {
       const roomId = await resolveRoomId();
-      await devicesApi.updateDevice(selected.device_id, {
+      const updated = await devicesApi.updateDevice(selected.device_id, {
         label: form.label.trim() || undefined,
         room_id: roomId !== selected.room_id ? roomId : undefined,
         threshold: form.threshold ? Number(form.threshold) : undefined,
       });
+      select(updated);
       return "Device updated";
     });
 
   const setStatus = (d: Device, status: "enabled" | "disabled") =>
     void run(async () => {
-      await devicesApi.updateDevice(d.device_id, { status });
+      const updated = await devicesApi.updateDevice(d.device_id, { status });
+      setSelected((current) => current?.device_id === updated.device_id ? updated : current);
       return status === "enabled" ? "Device enabled" : "Device disabled";
     });
 

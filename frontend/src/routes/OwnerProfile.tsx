@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../api/apiClient";
 import { NotificationPreferences } from "../features/alerts/NotificationPreferences";
+import { useAuthStore } from "../stores/authStore";
 
 export function OwnerProfile({ houseId }: { houseId: number }) {
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
@@ -22,11 +23,12 @@ export function OwnerProfile({ houseId }: { houseId: number }) {
   async function save(event: FormEvent) {
     event.preventDefault();
     try {
-      await api.updateMe({
+      const updated = await api.updateMe({
         full_name: form.full_name.trim() || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
       });
+      useAuthStore.setState({ user: updated });
       setNotice({ kind: "ok", text: "Profile saved." });
     } catch (err) {
       const message = (err as { message?: string }).message ?? "Could not save your profile.";
